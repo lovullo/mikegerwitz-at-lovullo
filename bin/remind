@@ -1,0 +1,9 @@
+#!/bin/bash
+
+date="${1?Missing date/time}"
+msg="${2?Missing message}"
+
+# cmd is run using sh
+at "$date" <<EOF
+  echo "$msg" | mail -s "$msg" gerwitm@lovullo.com
+EOF

@@ -1,0 +1,58 @@
+#!/bin/bash
+
+data=$( cat "$( dirname $0 )/.extlist" )
+path=~/gitrepos/lovlib/tools/lovullo
+
+# status colors (CHM is 1-based); second row is watch colors
+colors=(  '' 'g' 'y' 'y' 'y' 'y' \
+          '' 'g' 'm' 'm' 'm' 'm' \
+)
+
+# load monitor data
+monfile=/tmp/.extmon
+monitor="$( cat "$monfile" )"
+
+chm-ind()
+{
+  chm=$( cat - )
+  chr=$1
+
+  color=${colors[$chm]}
+
+  # output the given chr with the appropriate status color
+  echo -en "\005{+ ${color}W}$chr\005{-}"
+}
+
+IFS=$'\n'
+for line in $data; do
+  ext=$( cut -d' ' -f1 <<< "$line" )
+  chr=$( cut -d' ' -f2 <<< "$line" )
+
+  # check for spacer
+  if [ "$ext" == '-' ]; then
+    echo -n ' '
+    continue
+  fi
+
+  # get CHM for the extension
+  status="$( $path/phonectl --ext $ext --get chm )"
+
+  # if monitoring, then double status
+  grep -qF "$ext" <<< "$monitor" \
+    && status=$((status*2))
+
+  # display status
+  chm-ind $chr <<< "$status"
+
+  # are we monitoring this extension?
+  if [ $status -eq 1 ]; then
+    grep -qF "$ext" <<< "$monitor" \
+      && {
+        # notify and remove from the monitor file
+        beep -f 1700 -l 200 -r 2 -d 200 \
+          && sed -i "/^$ext$/d" "$monfile"
+      }
+  fi
+done
+
+echo

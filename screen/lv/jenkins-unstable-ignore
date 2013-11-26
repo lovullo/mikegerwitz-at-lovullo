@@ -1,0 +1,5 @@
+^php-qa-template$
+^task-nodelog-error-check$
+^task-fsbranch-chk$
+^task-job-chk$
+^task-job-failure-chk$

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# all args will go toward extra opts
+opts=""
+for opt in "$@"; do
+  opts="$opts -o $opt"
+done
+
+fold -s -w120 | lpr -o cpi=15 -o lpi=9 $opts

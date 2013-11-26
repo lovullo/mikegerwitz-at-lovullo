@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# if the encrypted dir isn't mounted, then we have to do that first (this will
+# simply exit immediately if there is nothing to be done)
+unsec
+
+# add the SSH key for the remainder of the work day (+1h to ensure we never
+# produce 0h)
+. ~/.ssh/.agent
+
+# add the key only if needed
+ssh-add -L | grep -q ^ssh \
+ || ssh-add -t"$(( 17 - $( date +%l ) ))h"

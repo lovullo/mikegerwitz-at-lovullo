@@ -1,0 +1,46 @@
+#!/bin/bash
+
+statefile=.state-nodelog-err
+countfile="$( dirname $0 )/.nodelog-err-count"
+
+count="$( cat $countfile )"
+count="${count:--1}"
+oldcount=$( cat "$statefile" 2>/dev/null || echo 0 )
+oldcount="${oldcount:-0}"
+inc=""
+
+# keep our current output if we failed to retrieve a count from the server
+if [ "$count" -eq -1 ]; then
+  count="$oldcount"
+  err='!'
+fi
+
+# determine indication color
+if [ $count -gt 4 ]; then
+    # bold white fg, red bg
+    echo -en "\005{+ rW}"
+elif [ $count -gt 0 ]; then
+    # normal black, yellow bg
+    echo -en "\005{+ yk}"
+else
+    # normal black, green bg
+    echo -en "\005{+ gk}"
+fi
+
+# if the number of errors has increased, provide a notification
+if [ $count -gt $oldcount ]; then
+    # display the amount increased so that we won't be confused when we hear the
+    # beep (it will not show the next time around)
+    inc="(+$(( $count - $oldcount )))"
+
+    # provide a brief, barely audible beep to gently caress my attention toward the
+    # e-mail indicator
+    beep -f 100 -l 100 -d 100 -r 3 &
+fi
+
+# output and reset text colors
+echo -e "[\005{+b}$count$err\005{-}${inc}q]\005{-} "
+
+# update the statefile
+echo "$count" > "$statefile"
+

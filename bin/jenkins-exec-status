@@ -1,0 +1,175 @@
+#!/bin/bash
+
+trap "refresh-screen" WINCH
+
+refresh-screen()
+{
+  # to permit an initial update
+  cols=$( tput cols )
+  lines=$( tput lines )
+
+  cols_task=$(( cols - 6 ))
+  cols_progress=5
+
+  setterm -linewrap off
+  setterm -cursor off
+  clear
+
+  output-head
+}
+
+output-head()
+{
+  load=" "
+  #if [ "$( ssh-add -L | grep ^ssh )" ]; then
+  #  load="$( ssh thrall1 uptime | cut -d',' -f3- | cut -d':' -f2 || echo ' ' )"
+  #fi
+
+  warn="$( grep -q '^ [5-9]' <<< "$load" && echo 1 )"
+  if [ -z "$warn" ]; then
+    warn="$( grep -q '^ [4-9]' <<< "$load" && echo 2 )"
+  fi
+
+  tput cup 0 0
+
+  color="\e[37;44m"
+  if [ "$warn" ]; then
+    color="\e[33;44m"
+    if [ "$warn" -eq 1 ]; then
+      color="\e[30;41m"
+    fi
+  fi
+
+  echo -en "$color"
+  printf "%-$((cols-18))s %17s" "Build Executor Status" "$load"
+  echo -en "\e[0m"
+}
+
+# initial paint
+refresh-screen
+
+get-last()
+{
+  echo "$raw_full" \
+    | grep -B1 "$1/lastSuccessfulBuild" \
+    | head -n1 \
+    | sed 's/^ *//'
+}
+
+efull()
+{
+  printf "%-${cols}s" "$1"
+}
+
+efull2()
+{
+  lsize=$1
+  rsize=$(( cols - lsize - 1 ))
+
+  printf "%-${lsize}s %${rsize}s" "$2" "$3"
+}
+
+beepcount=0
+while [ 1 ]; do
+  raw_full=$( curl -q http://jenkins.lovullo.com 2>/dev/null )
+  raw=$( echo "$raw_full" | grep 'class="pane"' )
+
+  data=$( echo "$raw" \
+    | grep -o 'job/[a-zA-Z0-9_-]\+' \
+    | cut -d'/' -f2- \
+    | sort \
+    | uniq \
+  )
+
+  # wait to clear until after we receive the data so the screen isn't empty for
+  # a long period of time
+  tput cup 1 0
+
+  count=0
+  more=0
+  for job in $data; do
+    if [ $count -gt $((lines-9)) ]; then
+      ((more++))
+      continue
+    fi
+
+    progress=$( echo "$raw" \
+      | grep "$job/" \
+      | grep '[0-9]\+%;" class="progress-bar-done"' \
+      | grep -o '[0-9]\+%' \
+      | head -n1 \
+    )
+
+    color="\e[1;35m"
+    if [ -z "$progress" ]; then
+      color=""
+    fi
+
+    if [ "${#job}" -gt $((cols_task-5)) ]; then
+      job="${job:0:$((cols_task-5))}..."
+    fi
+
+    echo -en "$color"
+    printf "%-${cols_task}s %${cols_progress}s" "  $job" "($progress)"
+    echo -e "\e[0m"
+
+    ((count++))
+  done
+
+  if [ $more -gt 0 ]; then
+    echo -en "\e[0;31m"
+    printf "%-${cols_task}s %${cols_progress}s" " [$more more]" ""
+    echo -e "\e[0m"
+
+    ((count++))
+  fi
+
+
+  if [ -z "$raw" ]; then
+    # ...Jenkins is down.
+    echo -en "\e[0;31m"
+    printf "%-${cols}s" '  Houston, we have a problem...'
+    echo -e "\e[0m"
+
+    # be obnoxious
+    if [ $beepcount -lt 3 ]; then
+      for i in `seq 1 3`; do
+        beep -f1000 -l100 -n -f500 -l100 -n -f300 -l100
+      done
+    fi
+
+    count=1 # for below formatting
+    ((beepcount++))
+  else
+    beepcount=0
+
+    if [ -z "$data" ]; then
+      # no jobs
+      printf "%-${cols}s" '  All is quiet...'
+      count=1 # for below formatting
+    fi
+  fi
+
+  # spacing to align to bottom (2 for the two headings + lines for output)
+  for i in $( seq 1 $(( lines - count - 7 )) ); do
+    efull
+  done
+
+  # last syncs (no newline with final line)
+  echo -en "\e[37;44m"
+  efull "Last Syncs"
+  echo -e "\e[0;32m"
+  efull2 20 "Release:"       "$( get-last lovullo-release )"
+  efull2 20 "Staging Sync:"  "$( get-last lovullo_staging-deploy )"
+  efull2 20 "Dev Sync:"      "$( get-last lovullo_dev-deploy )"
+  efull2 20 "lovlib Sync:"   "$( get-last lovlib-deploy )"
+  efull2 20 "Rater Release:" "$( get-last rater-release )"
+  echo -en "\e[0m"
+
+  output-head
+
+  # wait 5 seconds between requests, unless a command is given
+  TMOUT=5 read -s -n1 cmd && {
+    [ "$cmd" == 'q' ] && clear && exit 0
+  }
+done

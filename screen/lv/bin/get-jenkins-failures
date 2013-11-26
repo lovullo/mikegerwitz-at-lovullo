@@ -1,0 +1,4 @@
+#!/bin/bash
+
+url=http://jenkins.lovullo.com
+curl -s --connect-timeout 30 "$url/api/xml"

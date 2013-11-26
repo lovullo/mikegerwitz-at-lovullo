@@ -1,0 +1,67 @@
+#!/bin/bash
+
+stealth=$1
+
+if [ -z "$DISPLAY" ]; then
+  export DISPLAY=:0
+fi
+
+# set away from desk and deactivate on return
+if [ "$stealth" ]; then
+  # set CHM to "Custom"
+  phonectl --ext 324 --chm 5
+else
+  curl -m 2 --silent \
+    'intralov.lovullo.com/ooo_dashboard.php?pt=1&user=gerwitm' || {
+      beep -f 300 -l 200 -r 2
+      exit 1
+  }
+fi
+
+# lock the screen (only if not locked; note that if it's blanked, it'll lock
+# itself shortly anyway with my configuration)
+xscreensaver-command -time | grep non-blanked && {
+  xscreensaver-command -lock || {
+    beep -f 300 -l 200 -r 2
+    exit 2
+  }
+}
+
+# clear SSH keys from memory (after a short delay, so as not to be too annoying
+# when we go away for short periods)
+(
+  sleep 300
+  . ~/.ssh/.agent
+  ssh-add -D
+) &
+
+spid=$!
+
+# keyboard notifications are once again useful
+rm /tmp/.keyind-ignore
+
+echo -n "Waiting for user to unlock screen..."
+
+while [ 1 ]; do
+  xscreensaver-command -time | grep locked || {
+    # prevent ssh key from being cleared (if it hasn't already been)
+    kill $spid
+
+    # prompt for a new key when we return
+    screen -X screen sshkey-add
+
+    if [ "$stealth" ]; then
+      phonectl --ext 324 --chm 1
+    else
+      curl --silent 'intralov.lovullo.com/setdesk.php?user=gerwitm&desk=1' \
+        >/dev/null
+    fi
+
+    # prevent keyboard indications
+    touch /tmp/.keyind-ignore
+
+    exit
+  }
+
+  sleep 1
+done

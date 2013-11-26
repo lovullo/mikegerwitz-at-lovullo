@@ -1,0 +1,6 @@
+#!/bin/bash
+
+case "$1" in
+  BLANK) beep -f150 -d50;;
+  LOCK) /usr/local/bin/afd 1 &>/dev/null;;
+esac

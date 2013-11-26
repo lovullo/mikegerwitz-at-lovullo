@@ -1,0 +1,8 @@
+#!/bin/bash
+
+import -silent "$@" ~/ss.png
+
+if [ "$saveas" ]; then
+  path="$( zenity --file-selection --save --filename ~/ss.png )"
+  [ -n "$path" ] && cp ~/ss.png "$path"
+fi

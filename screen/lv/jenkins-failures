@@ -1,0 +1,125 @@
+#!/bin/bash
+
+file=.screen/lv/.jenkins-last.xml
+statefile="$( dirname $0 )/.state-jenkins-failures"
+
+# if the file is empty, do nothing
+[ -s "$file" ] || exit 1
+
+# if the file contains an HTML tag, then this is not at all what we are looking
+# for
+grep -q '<html>' "$file" && exit 1
+
+ignore_failure="$( dirname $0 )/jenkins-failure-ignore"
+ignore_unstable="$( dirname $0 )/jenkins-unstable-ignore"
+
+get-count()
+{
+    grep -q '[a-z]' && ( echo "$failures" | wc -l ) || echo 0
+}
+
+get-jobs()
+{
+    color="$1"
+    ignorefile="$2"
+
+    cat "$file" \
+        | tee .jenkins-failures-last-curl \
+        | xpath -q -e "//job[color='$color' or color='${color}_anime']/name" \
+        | sed 's/^.*>\([^<]\+\).*$/\1/' \
+        | grep -vP "$( cat "$ignorefile" | tr '\n' '|' | sed 's/|$//' )"
+
+    # if curl failed, exit; we'll try agian some other time (we don't want to
+    # interpret this as 0 failed/unstable jobs)
+    [ ${PIPESTATUS[0]} -eq 0 ] || exit 1
+}
+
+squash-str()
+{
+  str="$1"
+
+  # if the string is too long, then cut it in the middle
+  if [ ${#str} -gt 18 ]; then
+    echo "${str:0:4}..${str:$((${#str}-12))}"
+  else
+    echo "$str"
+  fi
+}
+
+failures="$( get-jobs red "$ignore_failure" )"
+if [ ! "$failonly" ]; then
+    unstable="$( get-jobs yellow "$ignore_unstable" )"
+fi
+
+count_failures=$( echo "$failures" | get-count )
+count_unstable=$( echo "$unstable" | get-count )
+
+# we dont' want to simply exit the script because we do want the beeps
+if [ $count_failures -gt 0 ]; then
+    # padding
+    echo -n ' '
+fi
+
+# output each individually, spaced, to make them appear as though they're
+# separate indicators
+nf=0
+for failure in $failures; do
+  if [ $nf -lt 3 ]; then
+    # white text on red background
+    echo -en "\005{+b rW}"
+
+    # output failed job name
+    echo -n "$( squash-str "$failure" )"
+
+    # clear color and add spacer
+    echo -en "\005{-} "
+  fi
+
+  ((nf++))
+done
+
+if [ $nf -gt 3 ]; then
+  echo -en "\005{+b rW}"
+  echo -n "[+$((nf-3))]"
+  echo -en "\005{-} "
+fi
+
+# output each individually, spaced, to make them appear as though they're
+# separate indicators
+nu=0
+nt=$nf
+for unstable_job in $unstable; do
+  if [ $nt -lt 3 ]; then
+    # black text on yellow background
+    echo -en "\005{+b yK}"
+
+    # output unstable job name
+    echo -n "$( squash-str "$unstable_job" )"
+
+    # clear color and add spacer
+    echo -en "\005{-} "
+  else
+    # number of unshown unstables
+    ((nu++))
+  fi
+
+  # number total between everything
+  ((nt++))
+done
+
+if [ $nu -gt 0 ]; then
+  echo -en "\005{+b yK}"
+  echo -n "[+$nu]"
+  echo -en "\005{-} "
+fi
+
+# provide a brief, barely audible beep to gently caress my attention toward the
+# failure indicator
+oldcount=$( cat "$statefile" 2>/dev/null || echo 0 )
+if [ $count_failures -gt $oldcount ]; then
+    beep -f 100 -l 1000 -d 500 -r 3 &
+elif [ $count_failures -lt $oldcount ]; then
+    beep -f 2000 -l 100 -d 100 -r 2 &
+fi
+
+echo "$count_failures" > "$statefile"

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "${1?Missing extension}" >> /tmp/.extmon
+chmod 0666 /tmp/.extmon

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+. ~/.ssh/.agent
+ssh-add -L | grep -q ^ssh || exit 1
+
+result=$( ssh fenrir1.colo.local grep '^!' /var/log/node/debug.log \| wc -l )
+
+# echo after we have the result so that we don't leave the file empty while
+# we're waiting for the data
+echo "$result"
