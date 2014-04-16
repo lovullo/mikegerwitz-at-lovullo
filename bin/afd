@@ -18,10 +18,9 @@ else
   }
 fi
 
-# lock the screen (only if not locked; note that if it's blanked, it'll lock
-# itself shortly anyway with my configuration)
+# note that we only blank the screen, since Windoze now handles the lock
 xscreensaver-command -time | grep non-blanked && {
-  xscreensaver-command -lock || {
+  xscreensaver-command -activate || {
     beep -f 300 -l 200 -r 2
     exit 2
   }
@@ -43,7 +42,7 @@ rm /tmp/.keyind-ignore
 echo -n "Waiting for user to unlock screen..."
 
 while [ 1 ]; do
-  xscreensaver-command -time | grep locked || {
+  xscreensaver-command -time | grep non-blanked && {
     # prevent ssh key from being cleared (if it hasn't already been)
     kill $spid
 
