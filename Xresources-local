@@ -1,3 +1,0 @@
-urxvt.font:        xft:Droid Sans Mono:pixelsize=9:antialias=true:hinting=true
-urxvt.boldFont:    xft:Droid Sans Mono:pixelsize=9:bold:antialias=true:hinting=true
-urxvt.letterSpace: -2
