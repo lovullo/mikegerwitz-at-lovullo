@@ -1,6 +1,6 @@
 ! since this is a VM within Windoze, let it handle the locking and we will time
 ! out five seconds after
-xscreensaver.timeout: 0:01:05
+xscreensaver.timeout: 0:00:00
 xscreensaver.lock: false
 
 ! vim: set ft=xdefaults:
