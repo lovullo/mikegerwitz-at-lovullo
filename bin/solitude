@@ -1,0 +1,27 @@
+#!/bin/bash
+# Stop bugging me, damnit!
+##
+
+phoneaction()
+{
+  phonectl --ext 324 "$@"
+}
+
+case "$1" in
+  on)
+    phoneaction --chm 5
+    "$(dirname $0)"/email-fetch off
+    ;;
+
+  off)
+    phoneaction --chm 1
+    "$(dirname $0)"/email-fetch on
+    ;;
+
+  *)
+    echo "error: must provide \`on' or \`off'" >&2
+    exit 64
+esac
+
+wkgrp-toggle
+

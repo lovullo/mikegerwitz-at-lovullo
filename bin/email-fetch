@@ -1,0 +1,13 @@
+#!/bin/bash
+# Turn on/off e-mail fetching
+##
+
+case "$1" in
+  off) mv ~/.fetchmailrc{,-off};;
+  on)  mv ~/.fetchmailrc{-off,};;
+  *)
+    echo "error: must provide \`on' or \`off'" >&2
+    exit 64
+esac
+
+
