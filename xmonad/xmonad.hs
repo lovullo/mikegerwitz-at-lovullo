@@ -68,6 +68,7 @@ keybindings conf@(XConfig {XMonad.modMask = modm}) = M.fromList $ [
     ((modm, xK_Insert ), spawn "phonectl --ext 324 --chm 1"),
     ((modm, xK_Home ), spawn "wkgrp-toggle"),
     ((modm, xK_Prior ), spawn "phonectl --ext 324 --chm 5"),
+    ((modm, xK_Delete ), spawn "bin/email-fetch toggle"),
 
     -- gromit
     ((modm, xK_grave ), spawn "gromit-toggle"),
