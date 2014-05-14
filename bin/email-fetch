@@ -2,9 +2,14 @@
 # Turn on/off e-mail fetching
 ##
 
+on() { mv ~/.fetchmailrc{-off,}; }
+off() { mv ~/.fetchmailrc{,-off}; }
+
 case "$1" in
-  off) mv ~/.fetchmailrc{,-off};;
-  on)  mv ~/.fetchmailrc{-off,};;
+  off) off;;
+  on)  on;;
+  toggle)
+    [ -e ~/.fetchmailrc-off ] && on || off;;
   *)
     echo "error: must provide \`on' or \`off'" >&2
     exit 64
