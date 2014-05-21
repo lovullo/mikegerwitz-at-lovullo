@@ -5,3 +5,4 @@
 ^task-C1-network-autofiler-check$
 ^puppet-sync$
 ^task-site-integrity-checker$
+^task-aric-pts-policy-download$
