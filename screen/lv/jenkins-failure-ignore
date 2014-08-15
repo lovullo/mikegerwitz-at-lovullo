@@ -6,3 +6,4 @@
 ^puppet-sync$
 ^task-site-integrity-checker$
 ^task-aric-pts-policy-download$
+^task-failed-fax-folder-check$
