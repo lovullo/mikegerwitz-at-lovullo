@@ -9,6 +9,7 @@ node 'gerwitm-vm1.lovullo.local' {
 
 node 'gerwitm-ubuntu2.lovullo.local' {
     include gerwitm
+    include gerwitm::desktop
 
     class { 'mikegerwitz::dev':
         repos => false,
