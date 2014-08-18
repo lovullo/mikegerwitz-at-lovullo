@@ -6,4 +6,7 @@ backtick 205    1       1       binclock -t
 
 bindkey -k F2 screen /home/gerwitm/.screen-f12
 
+bind ^C screen -t vmshell bash -c 'source ~/.ssh/.agent; exec ssh gerwitm-vm1'
+
 hardstatus string "%{= kw}%{+b}Happy Hacking%{-}%51`%50`  %205` %= %203`  %200`%201` %101`  %100`  %102`  %1`%{-}"
+
