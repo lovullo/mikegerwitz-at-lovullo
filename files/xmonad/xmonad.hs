@@ -20,7 +20,7 @@ keybindings conf@(XConfig {XMonad.modMask = modm}) = M.fromList $ [
   ((modm .|. shiftMask, xK_Return), spawn $ XMonad.terminal conf),
 
   -- dmenu used as launcher
-  ((modm, xK_p), spawn "exe=`dmenu_path | dmenu` && eval \"exec $exe\""),
+  ((modm, xK_p), spawn "dmenu_run"),
 
   -- window manipulation
   ((modm .|. shiftMask, xK_c),      kill),
