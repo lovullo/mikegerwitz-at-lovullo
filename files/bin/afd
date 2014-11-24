@@ -15,18 +15,9 @@ if [ -z "$DISPLAY" ]; then
   find-display
 fi
 
-# set away from desk and deactivate on return
-if [ "$stealth" ]; then
-  # set CHM to "Custom"
-  oldstatus="$( phonectl --ext 324 --get chm )"
-  phonectl --ext 324 --chm 5
-else
-  curl -m 2 --silent \
-    'intralov.lovullo.com/ooo_dashboard.php?pt=1&user=gerwitm' || {
-      beep -f 300 -l 200 -r 2
-      exit 1
-  }
-fi
+# set CHM to "Custom"
+oldstatus="$( phonectl --ext 324 --get chm )"
+phonectl --ext 324 --chm 5
 
 # note that we only blank the screen, since Windoze now handles the lock
 xscreensaver-command -time | grep non-blanked && {
@@ -56,17 +47,13 @@ while [ 1 ]; do
     # prevent ssh key from being cleared (if it hasn't already been)
     kill $spid
 
-    # prompt for a new key when we return ("PID.pts-" is the default name)
+    # prompt for a new key when we return (assumes existence of an "lv"
+    # session)
     screen -Rx lv -X screen sshkey-add
 
-    if [ "$stealth" ]; then
-      # return to *previous* status, which is especially important when I'm
-      # in the middle of tasks and get up from my desk
-      phonectl --ext 324 --chm "${oldstatus:-1}"
-    else
-      curl --silent 'intralov.lovullo.com/setdesk.php?user=gerwitm&desk=1' \
-        >/dev/null
-    fi
+    # return to *previous* status, which is especially important when I'm
+    # in the middle of tasks and get up from my desk
+    phonectl --ext 324 --chm "${oldstatus:-1}"
 
     # prevent keyboard indications
     touch /tmp/.keyind-ignore
