@@ -117,6 +117,7 @@ class gerwitm::desktop
     lbin { 'lpfmt': }
     lbin { 'rdc': }
     lbin { 'remind': }
+    lbin { 'screen-layout': }
     lbin { 'screenshot': }
     lbin { 'sshkey-add': }
 }

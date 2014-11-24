@@ -1,0 +1,69 @@
+#!/bin/sh
+# Initialize main GNU screen session
+#
+#  Copyright (C) 2014  LoVullo Associates, Inc.
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Note that some commands run bash to ensure that ssh-agent and other
+# settings are properly loaded.
+# #
+
+
+cmd () {
+  screen -X "$@"
+}
+
+
+# three high
+cmd split
+cmd split
+
+cmd focus up
+cmd focus up
+
+# follow quote server log
+cmd screen bash "$HOME/gitrepos/lovullo/src/tools/rater/nodelog-parse" -C follow
+cmd resize 20
+cmd number 10
+cmd title "l"
+
+cmd focus down
+
+# `lovullo' repo shell
+cmd screen -t lovullo ssh -t gerwitm-vm1 'cd ~/gitrepos/lovullo && bash'
+cmd number 0
+cmd resize 85
+
+cmd focus down
+
+# dev vm htop
+cmd screen -t vmtop ssh -t gerwitm-vm1 htop
+cmd number 11
+
+# vertical split to the right within the bottom window
+cmd split -v
+cmd focus
+cmd resize 45
+
+# CI server executor status (jobs)
+cmd screen -t j bash -c jenkins-exec-status
+cmd number 12
+
+# return to middle (main) window
+cmd focus up
+
+# persist after detaching
+cmd layout save "main"
+
