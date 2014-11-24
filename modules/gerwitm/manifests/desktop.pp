@@ -112,6 +112,7 @@ class gerwitm::desktop
     # /usr/local/bin
     lbin { 'afd': }
     lbin { 'extmon': }
+    lbin { 'gnus': }
     lbin { 'jenkins-exec-status': }
     lbin { 'lpfmt': }
     lbin { 'rdc': }
