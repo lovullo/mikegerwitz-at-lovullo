@@ -2,8 +2,17 @@
 
 stealth=$1
 
+find-display()
+{
+  local disptry=0
+  until xscreensaver-command -time &>/dev/null; do
+    export DISPLAY=:"$disptry"
+    ((disptry++))
+  done
+}
+
 if [ -z "$DISPLAY" ]; then
-  export DISPLAY=:0
+  find-display
 fi
 
 # set away from desk and deactivate on return
