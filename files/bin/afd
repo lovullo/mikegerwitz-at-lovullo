@@ -17,8 +17,6 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # #
 
-stealth=$1
-
 find-display()
 {
   local disptry=0
@@ -27,6 +25,7 @@ find-display()
     ((disptry++))
   done
 }
+
 
 if [ -z "$DISPLAY" ]; then
   find-display
@@ -54,12 +53,9 @@ xscreensaver-command -time | grep non-blanked && {
 
 spid=$!
 
-# keyboard notifications are once again useful
-rm /tmp/.keyind-ignore
-
 echo -n "Waiting for user to unlock screen..."
 
-while [ 1 ]; do
+while true; do
   xscreensaver-command -time | grep non-blanked && {
     # prevent ssh key from being cleared (if it hasn't already been)
     kill $spid
@@ -72,11 +68,9 @@ while [ 1 ]; do
     # in the middle of tasks and get up from my desk
     phonectl --ext 324 --chm "${oldstatus:-1}"
 
-    # prevent keyboard indications
-    touch /tmp/.keyind-ignore
-
     exit
   }
 
   sleep 1
 done
+
