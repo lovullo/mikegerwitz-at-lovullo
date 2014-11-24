@@ -1,4 +1,33 @@
 #!/bin/bash
+# Add SSH key to agent for limited time frame
+#
+#  Copyright (C) 2014  LoVullo Associates, Inc.
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# This is an important security feature just in case my secure script
+# (usually run at the end of the day) is not run, or some other problem
+# arises.  If an attacker is able to somehow access a session that has
+# access to the SSH agent, we do not want them to be able to push code to
+# GitHub or access any [personal] servers that I may have put the key on.
+#
+# This is intended to limit the key duration to the hours that I am
+# physically present in the office.
+#
+# Note that my `afd' script also purges the key from memory when I leave my
+# desk.
+# #
 
 # if the encrypted dir isn't mounted, then we have to do that first (this will
 # simply exit immediately if there is nothing to be done)
