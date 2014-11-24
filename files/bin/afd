@@ -23,12 +23,13 @@ find-display()
   until xscreensaver-command -time &>/dev/null; do
     export DISPLAY=:"$disptry"
     ((disptry++))
+    test disptry -lt 5 || return 1
   done
 }
 
 
 if [ -z "$DISPLAY" ]; then
-  find-display
+  find-display || exit
 fi
 
 # set CHM to "Custom"
