@@ -18,6 +18,7 @@ fi
 # set away from desk and deactivate on return
 if [ "$stealth" ]; then
   # set CHM to "Custom"
+  oldstatus="$( phonectl --ext 324 --get chm )"
   phonectl --ext 324 --chm 5
 else
   curl -m 2 --silent \
@@ -59,7 +60,9 @@ while [ 1 ]; do
     screen -Rx lv -X screen sshkey-add
 
     if [ "$stealth" ]; then
-      phonectl --ext 324 --chm 1
+      # return to *previous* status, which is especially important when I'm
+      # in the middle of tasks and get up from my desk
+      phonectl --ext 324 --chm "${oldstatus:-1}"
     else
       curl --silent 'intralov.lovullo.com/setdesk.php?user=gerwitm&desk=1' \
         >/dev/null
