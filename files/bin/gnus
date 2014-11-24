@@ -1,2 +1,2 @@
 #!/bin/sh
-TERM=xterm-256color emacs -f gnus
+TERM=xterm-256color emacs -gnus
