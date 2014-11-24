@@ -118,6 +118,5 @@ class gerwitm::desktop
     lbin { 'remind': }
     lbin { 'screenshot': }
     lbin { 'sshkey-add': }
-    lbin { 'wins': }
 }
 

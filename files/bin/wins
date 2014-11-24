@@ -1,2 +1,0 @@
-#!/bin/bash
-nice -n15 VBoxManage startvm "Windows 7"
