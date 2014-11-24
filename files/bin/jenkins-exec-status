@@ -69,42 +69,48 @@ efull2()
   printf "%-${lsize}s %${rsize}s" "$2" "$3"
 }
 
+
+get-raw()
+{
+  curl -qs 'http://jenkins.lovullo.com/computer/api/json?depth=1'
+}
+
+get-exec-data()
+{
+  jq '
+    .computer[].executors[]
+    | select(.idle == false)
+    | .currentExecutable.url, .progress
+  ' \
+    | tr -d '"'
+}
+
 beepcount=0
 while [ 1 ]; do
-  raw_full=$( curl -q http://jenkins.lovullo.com 2>/dev/null )
-  raw=$( echo "$raw_full" | grep 'class="pane"' )
-
-  data=$( echo "$raw" \
-    | grep -o 'job/[a-zA-Z0-9_-]\+' \
-    | cut -d'/' -f2- \
-    | sort \
-    | uniq \
-  )
-
   # wait to clear until after we receive the data so the screen isn't empty for
   # a long period of time
   tput cup 1 0
 
+  raw="$( get-raw )"
+  data="$( get-exec-data <<< "$raw" )"
+
   count=0
   more=0
-  for job in $data; do
+  while read joburl; do
     if [ $count -gt $((lines-9)) ]; then
       ((more++))
       continue
     fi
 
-    progress=$( echo "$raw" \
-      | grep "$job/" \
-      | grep '[0-9]\+%;" class="progress-bar-done"' \
-      | grep -o '[0-9]\+%' \
-      | head -n1 \
-    )
+    job="$( sed 's#^.*/job/\([^/]\+\).*$#\1#' <<< "$joburl" )"
+    read progress
 
     color="\e[1;35m"
     if [ -z "$progress" ]; then
       color=""
     fi
 
+    progress="$progress%"
     if [ "${#job}" -gt $((cols_task-5)) ]; then
       job="${job:0:$((cols_task-5))}..."
     fi
@@ -114,7 +120,7 @@ while [ 1 ]; do
     echo -e "\e[0m"
 
     ((count++))
-  done
+  done <<< "$data"
 
   if [ $more -gt 0 ]; then
     echo -en "\e[0;31m"
