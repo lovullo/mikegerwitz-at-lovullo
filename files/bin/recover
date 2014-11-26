@@ -1,0 +1,55 @@
+#!/bin/bash
+# Recover system to a less-worthless state after reboot
+#
+#  Copyright (C) 2014  LoVullo Associates, Inc.
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# My box never goes down intentionally, unless I'm performing a kernel
+# update, which is infrequent.  However, since my GNU/Linux box is
+# virtualized within Windoze, it is at the mercy of an unstable environment.
+# Shit therefore happens.  And it pisses me off.
+#
+# This at least automates some of the manual stuff needed to help me
+# continue where I left off.  Right now, it is modest---it will automate
+# further in the future, but hopefully I do not need to use this often.
+# #
+
+echo "Oh boy.  What is this, Windoze?"
+
+(
+  unsec || exit
+
+  echo -n "Starting SSH agent, if not already running..."
+  ssh-add -l &>/dev/null \
+    || ( ssh-agent | sed '$d' > ~/.ssh/.agent ) \
+    || exit
+  echo ok
+
+  source ~/.ssh/.agent
+
+  # we technically don't care if this fails; it'll just be annoying if it
+  # does, since other commands may prompt for the key password
+  sshkey-add
+
+  echo -n "Mounting remote gitrepos..."
+  sshfs gerwitm-vm1:gitrepos ~/gitrepos/vm || exit
+  echo ok
+) \
+  && echo "You're all set.  What happened this time?" \
+  || {
+    echo "So much for that.  You're on your own." >&2
+    exit 1
+  }
+

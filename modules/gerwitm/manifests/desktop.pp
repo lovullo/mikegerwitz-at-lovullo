@@ -116,6 +116,7 @@ class gerwitm::desktop
     lbin { 'jenkins-exec-status': }
     lbin { 'lpfmt': }
     lbin { 'rdc': }
+    lbin { 'recover': }
     lbin { 'remind': }
     lbin { 'screen-layout': }
     lbin { 'screenshot': }
