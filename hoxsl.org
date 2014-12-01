@@ -1,0 +1,87 @@
+#+TITLE: Notes on hoxsl
+#+AUTHOR: Mike Gerwitz
+#+OPTIONS: H:3
+
+[[https://github.com/lovullo/hoxsl][hoxsl]] is a higher-order logic library written in XSLT.
+
+* Tasks
+Not all tasks will be in here;  in fact, it's pretty much a toss-up,
+since I throw things in here when I have too many things going on and
+need to keep track of them.
+
+Maybe it will be more organized in the future.
+
+
+** DONE Circular coupling between =f:partial= and =f:arity=
+
+The latter indirectly through =@partial=.
+
+Really, we should remove the dependency on =@partial= entirely and instead
+manipulate =@arity=, leaving partial application as its own encapsulated
+detail.
+
+*** TODO I would consequently recommend a more generic descriptor
+
+We could solve _both_ the partial application and target arity issues
+by storing the offset of the end of the argument list.
+
+We could further store the offset of the end of the dynamic function
+reference itself, trivially allowing further extension (e.g. lambdas).
+
+** DONE Ref-related functions are directly related to =f:arity=
+
+They should be grouped together; remove ref functions from
+=apply.xsl=.
+
+** DONE Update existing code to use new ref mutators
+
+Partial application is now implicit in the design of the reference
+structure, so it will clean up the partial application implementation
+significantly and reduce it to, hopefully, error checking.
+
+** TODO Add missing ref accessors
+
+E.g. =f:desc=, =f:target=.
+
+** TODO Get terminology in order throughout all files
+
+- Dynamic Function ::
+  A function able to be called using hoxsl's application functions
+  (that is, names able to be determined at runtime; not static).
+
+- Target Function ::
+  The subject of a dynamic function application.
+
+- Dynamic Function Reference ::
+  A sequence describing a reference to a dynamic function and how to
+  apply it.
+
+- Descriptor ::
+  Structure describing the dynamic function reference.  It contains,
+  at present:
+
+  - Target Function Reference ::
+    A node with the QName of the target function.
+
+  - Dynamic Function Arity ::
+    The arity of the dynamic function being referenced.
+
+    If the reference represents a partial application, then the arity
+    will be the arity of the partially applied function; that is---the
+    arity of the target function minus the number of bound parameters.
+
+    Otherwise, the arity will be the arity of the target function.
+
+  - Reference Length ::
+    The total length of the reference, in sequence items.
+
+    This allows quickly jumping to the next reference in a sequence of
+    references.
+
+- Argument List ::
+  Partially applied arguments to be prepended to any additional
+  arguments included in an application.
+
+  That is, an argument list greater than length zero represents a
+  partially applied function, which masquerades as its own function
+  (when in reality it is still a reference to the same target).
