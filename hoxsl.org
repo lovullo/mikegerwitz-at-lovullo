@@ -43,6 +43,18 @@ significantly and reduce it to, hopefully, error checking.
 
 E.g. =f:desc=, =f:target=.
 
+** TODO =apply-gen= partial application functions
+
+When =apply-gen= notices that there is no arity overloading for a
+given function $f$ of arity \alpha, then it should generate functions
+for each arity $0 < a < \alpha$ such that supplying $a$ arguments to
+$f$ yields a partially applied function of arity $\alpha - a$.
+
+Previous to this implementation, this was already done for $a=0$ by
+returning, simply, a dynamic function reference.  The idea here is to
+provide a more concise form of partial application, allowing for
+=f:foo(a,b)= in place of =f:apply(f:foo(),a,b)=.
+
 ** TODO Get terminology in order throughout all files
 
 - Dynamic Function ::
