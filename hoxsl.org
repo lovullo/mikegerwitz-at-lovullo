@@ -20,7 +20,7 @@ Really, we should remove the dependency on =@partial= entirely and instead
 manipulate =@arity=, leaving partial application as its own encapsulated
 detail.
 
-*** TODO I would consequently recommend a more generic descriptor
+** TODO A more generic dynamic function descriptor
 
 We could solve _both_ the partial application and target arity issues
 by storing the offset of the end of the argument list.
