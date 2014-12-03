@@ -43,7 +43,7 @@ significantly and reduce it to, hopefully, error checking.
 
 E.g. =f:desc=, =f:target=.
 
-** TODO =apply-gen= partial application functions
+** DONE =apply-gen= partial application functions
 
 When =apply-gen= notices that there is no arity overloading for a
 given function $f$ of arity \alpha, then it should generate functions
