@@ -55,7 +55,7 @@ returning, simply, a dynamic function reference.  The idea here is to
 provide a more concise form of partial application, allowing for
 =f:foo(a,b)= in place of =f:apply(f:foo(),a,b)=.
 
-** TODO All =f:*= functions must accept adjacent data
+** DONE All =f:*= functions must accept adjacent data
 
 hoxsl uses sequences as its fundamental storage for functions.  Since
 sequences cannot be nested, that immediately implies that any
