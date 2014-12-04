@@ -55,6 +55,23 @@ returning, simply, a dynamic function reference.  The idea here is to
 provide a more concise form of partial application, allowing for
 =f:foo(a,b)= in place of =f:apply(f:foo(),a,b)=.
 
+** TODO All =f:*= functions must accept adjacent data
+
+hoxsl uses sequences as its fundamental storage for functions.  Since
+sequences cannot be nested, that immediately implies that any
+non-trivial expressions will likely involve adjacent references---a
+sequence of references, which themselves are sequences.  Nesting will
+therefore have to be explicit through reference length.
+
+It would be very inconvenient (and likely not very performant) to have
+to chop up references every time we want to invoke or manipulate
+one; instead, it makes more sense to be able to operate on a sequence
+of references like a stream, processing one, chopping off the head,
+and proceeding.  (Well I didn't mean for it to sound gruesome).  To do
+so, all functions that operate on references must not only accept
+arbitrary sequences of adjacent data, but must also _echo_ them,
+unchanged.
+
 ** TODO Get terminology in order throughout all files
 
 - Dynamic Function ::
