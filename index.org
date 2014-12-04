@@ -1,10 +1,6 @@
-#+TITLE: Mike's LoVullo Notes
+#+TITLE: Mike's LoVullo Notes---Index
 #+AUTHOR: Mike Gerwitz
 #+OPTIONS: H:1
-#+DESCRIPTION: Notes on [[https://github.com/lovullo][public projects]] that I am working on at LoVullo.
 
-These notes are specific to [[https://github.com/lovullo][public projects]] that I am working on at
-LoVullo.
-
-* Project Notes
+* Projects
 - [[file:hoxsl.org][hoxsl]]
