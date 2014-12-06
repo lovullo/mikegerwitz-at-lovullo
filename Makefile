@@ -24,7 +24,7 @@ org_html=$(patsubst %.org, %.html, $(org_src))
 default: org-html
 
 org-html: $(org_html)
-%.html: %.org
+%.html: %.org tools/org2html.el
 	emacs --batch "$<" -l tools/org2html.el > "$@"
 
 clean:
