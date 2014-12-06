@@ -20,5 +20,5 @@
         (concat
          "<link rel=\"stylesheet\""
          "type=\"text/css\""
-         "href=\"http://mikegerwitz.com/style.css\" />"))
+         "href=\"/style.css\" />"))
   (org-html-export-to-html))
