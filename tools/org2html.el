@@ -18,7 +18,7 @@
 (progn
   (setq org-html-head-extra
         (concat
-         "<link rel=\"stylesheet\""
-         "type=\"text/css\""
+         "<link rel=\"stylesheet\" "
+         "type=\"text/css\" "
          "href=\"/style.css\" />"))
   (org-html-export-to-html))
