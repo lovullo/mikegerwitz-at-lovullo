@@ -6,8 +6,7 @@ there.  This repository contains the stuff that differs; if you are not a
 LoVullo employee, it is not likely to be all that useful in itself, but I
 hope that someone will find something useful and worth exploring.
 
-Consider this README to be my personal homepage of sorts representing the
-projects that I work on for LoVullo Associates.
+[View my LoVullo-specific homepage.][mtg-lv]
 
 
 ## Our Software
@@ -69,6 +68,7 @@ more details.
 
 The full license is available in `COPYING`.
 
+[mtg-lv]: http://lovullo.mikegerwitz.com/
 [mtg-puppet]: https://github.com/mikegerwitz/mikegerwitz-puppet
 [lovullo]: https://www.lovullo.com/
 [free software]: http://www.gnu.org/philosophy/free-sw.html
