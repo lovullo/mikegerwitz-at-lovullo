@@ -16,9 +16,9 @@
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (progn
-  (setq org-html-head-extra
-        (concat
-         "<link rel=\"stylesheet\" "
-         "type=\"text/css\" "
-         "href=\"/style.css\" />"))
+  (setq org-html-head-include-default-style nil
+        org-html-head (concat
+                       "<link rel=\"stylesheet\" "
+                       "type=\"text/css\" "
+                       "href=\"/style.css\" />"))
   (org-html-export-to-html))
