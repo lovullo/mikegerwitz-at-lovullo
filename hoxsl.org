@@ -114,3 +114,20 @@ unchanged.
   That is, an argument list greater than length zero represents a
   partially applied function, which masquerades as its own function
   (when in reality it is still a reference to the same target).
+
+** TODO Use Autotools
+GNU Autotools should be used to check for the existence of
+dependencies (such as Java) and to set the Saxon JAR path.
+
+At some point, it'd be a good idea to provide the necessary
+abstraction to use something other than Saxon, but we will worry about
+that later.
+
+Current dependencies are fairly modest:
+  - Saxon 9
+  - Java runtime
+  - XSpec (dev)
+
+XSpec can be grabbed automatically using =git submodule update= when
+the Git repository is checked out; otherwise, though, the user will
+have to specify a path.
