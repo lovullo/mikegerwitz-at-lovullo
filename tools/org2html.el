@@ -15,10 +15,37 @@
 ;;  You should have received a copy of the GNU General Public License
 ;;  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(progn
-  (setq org-html-head-include-default-style nil
-        org-html-head (concat
-                       "<link rel=\"stylesheet\" "
-                       "type=\"text/css\" "
-                       "href=\"/style.css\" />"))
-  (org-html-export-to-html))
+(require 'ox-publish)
+
+;; FIXME: we're relying on the fact that we do not yet have a hierarchy
+(defconst html-nav-bar
+  "<nav id=\"nav-rel\">
+  <ul>
+    <li><a href=\"./\">Home</a></li>
+  </ul>
+</nav>")
+
+(setq org-publish-project-alist
+      `(("lv-notes-public"
+         :base-directory "."
+         :publishing-directory "www-root"
+         :recursive t
+         :publishing-function org-html-publish-to-html
+
+         :exclude "README.org"
+
+         :auto-sitemap t
+         :sitemap-title "Notes Sitemap"
+
+         :headline-levels 1
+         :section-numbers t
+
+         :html-html5-fancy t
+         :html-head-include-default-style nil
+         :html-head ,(concat
+                      "<link rel=\"stylesheet\" "
+                      "type=\"text/css\" "
+                      "href=\"/style.css\" />")
+         :html-preamble ,html-nav-bar)))
+
+(org-publish "lv-notes-public")

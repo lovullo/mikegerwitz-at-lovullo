@@ -16,16 +16,11 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-org_src=$(wildcard *.org)
-org_html=$(patsubst %.org, %.html, $(org_src))
-
 .PHONY: default org-html clean
 
 default: org-html
 
-org-html: $(org_html)
-%.html: %.org tools/org2html.el
-	emacs --batch "$<" -l tools/org2html.el > "$@"
-
+org-html:
+	emacs --batch -l tools/org2html.el
 clean:
-	$(RM) $(org_html)
+	$(RM) -r www-root/

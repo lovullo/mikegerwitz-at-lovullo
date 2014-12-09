@@ -1,3 +1,4 @@
-*.html
-*.html~
+/www-root
+/sitemap.org
+/sitemap.org~
 /style.css
