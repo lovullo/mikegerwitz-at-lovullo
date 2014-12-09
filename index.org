@@ -1,6 +1,6 @@
 #+TITLE: Mike's LoVullo Notes---Index
 #+AUTHOR: Mike Gerwitz
-#+OPTIONS: H:1
+#+OPTIONS: H:1 toc:nil
 
 * Projects
 - [[file:hoxsl.org][hoxsl]]
