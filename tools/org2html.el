@@ -17,6 +17,14 @@
 
 (require 'ox-publish)
 
+;; FIXME: we're relying on the fact that we do not yet have a hierarchy
+(defconst html-nav-bar
+  "<nav id=\"nav-rel\">
+  <ul>
+    <li><a href=\"./\">Home</a></li>
+  </ul>
+</nav>")
+
 (setq org-publish-project-alist
       `(("lv-notes-public"
          :base-directory "."
@@ -33,19 +41,11 @@
          :section-numbers t
 
          :html-html5-fancy t
-         :html-link-home "./"
-         :html-link-up "../"
          :html-head-include-default-style nil
          :html-head ,(concat
                       "<link rel=\"stylesheet\" "
                       "type=\"text/css\" "
-                      "href=\"/style.css\" />")))
-
-      org-html-home/up-format
-      (concat
-       "<div id=\"org-div-home-and-up\">"
-       "<a accesskey=\"h\" href=\"%s\">Up</a> | "
-       "<a accesskey=\"H\" href=\"%s\">Home</a>"
-       "</div>"))
+                      "href=\"/style.css\" />")
+         :html-preamble ,html-nav-bar)))
 
 (org-publish "lv-notes-public")
