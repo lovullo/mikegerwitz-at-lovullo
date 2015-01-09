@@ -3,7 +3,9 @@
 #
 class gerwitm {
     class { 'mikegerwitz':
-        user => 'gerwitm',
+        user    => 'gerwitm',
+        group   => 'domain users',
+        homedir => '/home/LOVULLO/gerwitm',
     }
 }
 
