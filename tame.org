@@ -182,7 +182,8 @@ As a short-hand, we might have:
   <!-- ... -->
 #+END_SRC
 
-** TODO Remove =const/@type= requirement
+* Completed
+** DONE Remove =const/@type= requirement
 Types of constants can easily be inferred by their contents: we
 support only =float= and =integer=, and the latter can be inferred if
 a decimal point is present.
