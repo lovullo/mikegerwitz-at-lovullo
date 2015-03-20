@@ -1,0 +1,191 @@
+#+TITLE: Notes on TAME
+#+AUTHOR: Mike Gerwitz
+#+OPTIONS: H:3
+
+TAME is The Adaptive MetalanguagE, a programming language and system
+of tools designed to aid in the development, understanding, and
+maintenance of systems performing numerous calculations on a complex
+graph of dependencies, conditions, and a large number of inputs.
+
+This system was developed at LoVullo Associates to handle the
+complexity of comparative insurance rating systems.  It is a
+domain-specific language (DSL) that itself encourages, through
+the use of templates, the creation of sub-DSLs.  TAME itself is at
+heart a calculator---processing only numerical input and
+output---driven by quantifiers as predicates.  Calculations and
+quantifiers are written declaratively without concern for order of
+execution.
+
+The system has powerful dependency resolution and data flow
+capabilities.
+
+TAME consists of a macro processor (implementing a metalanguage),
+numerous compilers for various targets (JavaScript, HTML documentation
+and debugging environment, LaTeX, and others), linkers, and supporting
+tools.  The input grammar is XML, and the majority of the project
+(including the macro processor, compilers, and linkers) are written in
+XSLT.  There is a reason for that odd choice; until an explanation is
+provided, know that someone is perverted enough to implement a full
+compiler in XSLT.
+
+More information will become available as various portions are
+liberated during refactoring; [[file:hoxsl][hoxsl]] is a product of what is now known
+as TAME.
+
+Note: References herein to the "Calc DSL" refers to the initial
+manifestation of this system prior to an aggressive rewrite of large
+portions of the system.
+
+
+* Braindump
+These ideas will not make much sense without context to support
+them.  As was mentioned above, portions of the project will be
+progressively liberated.
+
+These are ordered alphabetically, not by importance or priority.
+
+
+** TODO Namespacing
+The Calc DSL had a fairly straight-forward and modest implementation,
+designed around the specifications for the project that it would be
+used to create.  That project has since evolved enormously in scope,
+whose requirements manifested as TAME.
+
+One of those consequences is the large number of symbols (input
+parameters, calculations, classifications, etc) that TAME must now
+accommodate---beginning at a few hundred, and since evolving to
+thousands.  Each of these symbols exist in a single, global namespace
+(which we refer to as "root").
+
+That obviously creates a burden on developers---the system as a whole
+must be searched for symbol conflicts (or left to the compiler to
+perform that search for you), and obscure or excessively long
+identifiers may have to be chosen to resolve those
+conflicts.  Further, if two identical identifiers are used in separate
+packages once unrelated, they will cause conflicts should they ever
+need to be used together, which will require refactoring.
+
+Manual integration of two packages (resulting in a conflict) is not
+always the problem---the Global Classifier is a classification system
+that combines classifications of an entire system in order to produce
+a high-level overview of the state of the system as a whole.  Symbol
+conflicts are not uncommon in this situation, resulting in names like
+=foo-wind-available=---where "foo" is the name of a supplier---instead of
+simply =wind-available= to denote the availability of Wind coverage
+when quoting with supplier Foo.
+
+This also means that, even in a package with only a few imports,
+external tools will likely need to be used to figure out where an
+identifier is defined (that external tool may be =grep=, or something
+specific to TAME).  This is a frustrating barrier to entry into any
+project, and does not do well to assure developers that the complexity
+of the system is well-managed.
+
+TAME already recognizes symbols by their canonical paths---a symbol
+=baz= in a package =bar= in directory =foo= relative to the project
+root would be identified as =foo/bar/baz=.  Its namespace, then,
+should be considered to be the canonical package name: =foo/bar=.  In
+the case of the above example, =foo-wind-available= might become
+=foo/wind-available=; no conflict is possible, because only
+=wind-available= within package =foo= could possibly resolve to that
+name, in which case it is the same symbol, and there is therefore no
+conflict.
+
+** TODO Template-Encapsulated Primitives
+The initial implementation of the Calc DSL (to later be known as TAME)
+had no template support---there was a set of primitives, and macros
+were implemented in XSLT, expanding into primitives.  Later, the
+template system was added, similar in spirit to XSL templates, which
+added a powerful level of abstraction that, among other things,
+encapsulated primitives.
+
+Templates are now heavily used to create context-specific mini-DSLs
+for various circumstances.  Rather than having a separate syntax for
+invoking templates---while having all other nodes represent
+primitives---it now makes far greater sense to have every node
+represent a template application; this makes these mini-DSLs more
+natural and seamless, and makes the source syntax wholly
+customizable.  Changing TAME features would therefore require only
+changing a template, and features could be swapped with others by
+importing a different package providing templates of the same name.
+
+At that point, the macros that were implemented in XSLT could then be
+replaced with templates.
+
+** TODO Preserve Template Application Boundaries
+Templates are exceedingly useful, but they also produce very verbose
+expansions with no ability to simplify for rendering.  (A good example
+of this problem is the equation rendered by a table query.)
+
+If we preserved the boundaries of a template application, then we
+could provide the option to encapsulate the expansion (like a
+function call) when rendering types of output, or rendering the actual
+expansion.
+
+** TODO Weave Documentation
+A recent rewrite of portions of TAME produced a system of literate
+programming.  Previously, documentation was written separately (using
+LaTeX); unfortunately, it quickly grew out-of-date and was a strong
+maintenance burden.  This is not the place to discuss the [[http://www.literateprogramming.com/knuthweb.pdf][merits of
+literate programming]]; rather, I intend to convey that the existing
+LaTeX documentation/specifications will be generated (tangled) from
+the TAME source files.
+
+Many of the abstractions (LaTeX macros) can be re-used from the
+existing system.  LaTeX can be directly entered as character data in
+the TAME source files.  Certain TAME expressions will generate
+documentation (for example, typesetting calculations and quantifiers;
+generating cross-references for identifiers; etc), and templates may
+choose to generate their own as well.
+
+The HTML documentation that is generated for summary and debugging
+also renders LaTeX using MathJax, so much of this work has already
+been done and can be re-used here.
+
+** TODO XML Namespaces as Imports
+TAME imports packages' symbols by use of an =import= node.  This works
+just fine, but it seems almost unnecessary (especially when coupled
+with the namespacing discussion), since XML already provides a similar
+mechanism through its namespace support.
+
+Consider these imports:
+
+#+BEGIN_SRC xml
+<package title="Foo">
+  <import package="/bar/baz" />
+  <import package="/moo/cow" />
+  <!-- ... -->
+#+END_SRC
+
+Instead, I propose:
+
+#+BEGIN_SRC xml
+<package xmlns:baz="/bar/baz"
+         xmlns:cow="/moo/cow">
+  <!-- ... -->
+#+END_SRC
+
+While the =xmlns:= prefix is annoying and redundant, it is still less
+than the 12-character =import package=.  There are some benefits to
+this approach:
+
+  - Repurposing existing XML features;
+  - We get local namespace names (as XML namespace prefixes) for
+    imports;
+  - Scoped imports, by placing namespace definitions on parent.
+
+As a short-hand, we might have:
+
+#+BEGIN_SRC xml
+<package xmlns="/bar/baz;
+                /moo/cow">
+  <!-- ... -->
+#+END_SRC
+
+** TODO Remove =const/@type= requirement
+Types of constants can easily be inferred by their contents: we
+support only =float= and =integer=, and the latter can be inferred if
+a decimal point is present.
+
+We can retain the ability to specify the type, but there would not be
+much value in it, since cohesion is not difficult.
