@@ -23,7 +23,7 @@
 # Great for stalking and for productivity.
 # #
 
-data=$( cat "$( dirname $0 )/.extlist" )
+data=$( cat "$( dirname $0 )/extlist" )
 path=~/gitrepos/lovlib/tools/lovullo
 
 # status colors (CHM is 1-based); second row is watch colors
