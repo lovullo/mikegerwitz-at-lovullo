@@ -103,7 +103,7 @@ keybindings conf@(XConfig {XMonad.modMask = modm}) = M.fromList $ [
 
 
 main = xmonad defaultConfig {
-  terminal = "urxvt",
+  terminal = "xterm",
   modMask  = mod4Mask,
   keys     = keybindings,
 
