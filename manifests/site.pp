@@ -8,7 +8,13 @@ node 'gerwitm-vm1.lovullo.local' {
 }
 
 node 'gerwitm-ubuntu2.lovullo.local' {
-    include gerwitm
+    # my personal VM was set up long before the standardized
+    # Kerberos-based auth
+    class { 'gerwitm':
+        group   => 'gerwitm',
+        homedir => '/home/gerwitm',
+    }
+
     include gerwitm::desktop
 
     class { 'mikegerwitz::dev':
