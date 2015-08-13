@@ -11,7 +11,7 @@ class gerwitm::desktop
 
     # up-to-date browsers
     apt::ppa { 'ppa:chromium-daily/stable': }
-    apt::ppa { 'ppa:mozillateam/firefox-next': }
+    apt::ppa { 'ppa:ubuntu-mozilla-daily/firefox-aurora': }
 
     package { [
             # communication
