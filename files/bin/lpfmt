@@ -1,7 +1,7 @@
 #!/bin/bash
 # Format input to `lpr'
 #
-#  Copyright (C) 2014  LoVullo Associates, Inc.
+#  Copyright (C) 2015  LoVullo Associates, Inc.
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -17,10 +17,4 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # #
 
-# all args will go toward extra opts
-opts=""
-for opt in "$@"; do
-  opts="$opts -o $opt"
-done
-
-fold -s -w120 | lpr -o cpi=15 -o lpi=9 $opts
+fold -s -w120 | lpr -o cpi=15 -o lpi=9 "$@"
