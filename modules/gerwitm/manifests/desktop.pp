@@ -72,6 +72,13 @@ class gerwitm::desktop
         require => Vcsrepo[ $gitdir ],
     }
 
+    # mail
+    file { "${home}/.fetchmailrc":
+        ensure  => link,
+        target  => "${gitfile}/fetchmailrc",
+        require => Vcsrepo[ $gitdir ],
+    }
+
     # XMonad
     file { "${home}/.xmonad":
         ensure => directory,
