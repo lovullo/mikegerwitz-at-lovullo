@@ -17,6 +17,9 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # #
 
+STSESSION="${STSESSION:-$HOME/.stsessid}"
+
+
 find-display()
 {
   local disptry=0
@@ -28,13 +31,36 @@ find-display()
 }
 
 
+set-chm()
+{
+  local -ri chm="${1:-}"
+  local -r sessid="${2:-$( get-sessid )}"
+
+  local -r ts="$( date +%s )"
+
+  curl -s "http://10.10.0.65:5447/execute?SessionId=$sessid" \
+    --data '{
+      "sequence-id": 0,
+      "timestamp":   '"$ts"',
+      "topic":       "config",
+      "message":     "set-active-chm",
+      "mode":        '$chm' }' \
+    &>/dev/null
+}
+
+get-sessid()
+{
+  cat "$STSESSION"
+}
+
+
 if [ -z "$DISPLAY" ]; then
   find-display || exit
 fi
 
 # set CHM to "Custom"
 oldstatus="$( phonectl --ext 324 --get chm )"
-phonectl --ext 324 --chm 5
+set-chm 5
 
 # note that we only blank the screen, since Windoze now handles the lock
 xscreensaver-command -time | grep non-blanked && {
@@ -67,7 +93,7 @@ while true; do
 
     # return to *previous* status, which is especially important when I'm
     # in the middle of tasks and get up from my desk
-    phonectl --ext 324 --chm "${oldstatus:-1}"
+    set-chm "${oldstatus:-1}"
 
     exit
   }
