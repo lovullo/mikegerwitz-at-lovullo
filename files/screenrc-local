@@ -7,7 +7,7 @@ bindkey -k k4 screen gnus
 
 bind ^C screen -t vmshell bash -c 'source ~/.ssh/.agent; exec ssh -X gerwitm-vm1'
 
-hardstatus string "%{= kw}%{+b}Happy Hacking%{-}%51`%50`  %= %203`  %200`%201` %101`  %100`  %102`  %1`%{-}"
+hardstatus string "%{= kw}%{+b}Happy Hacking%{-}%51`%50`  %= %203`  %200`%201` %101`  %100`  %102`  %-020= %1`%{-}"
 
 
 # vim: set ft=screen: #
