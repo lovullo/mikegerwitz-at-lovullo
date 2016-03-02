@@ -5,6 +5,9 @@
 import XMonad
 import XMonad.Util.Paste
 import System.Exit
+import XMonad.Layout
+import XMonad.Layout.ThreeColumns
+import XMonad.Layout.Spiral
 
 import qualified XMonad.StackSet as W
 import qualified Data.Map        as M
@@ -12,6 +15,16 @@ import qualified Data.Map        as M
 -- mouse warp
 import Data.Ratio
 import XMonad.Actions.Warp
+
+
+layout = tiled ||| Mirror tiled ||| cols ||| whee ||| Mirror whee ||| Full
+  where
+    tiled   = Tall nmaster delta ratio
+    cols    = ThreeCol nmaster delta ratio
+    whee    = spiral (16/9)
+    nmaster = 1
+    ratio   = 1/2
+    delta   = 3/100
 
 
 -- key bindings
@@ -106,6 +119,9 @@ main = xmonad defaultConfig {
   terminal = "xterm",
   modMask  = mod4Mask,
   keys     = keybindings,
+
+  -- layout
+  layoutHook = layout,
 
   -- mouse
   focusFollowsMouse = True,
