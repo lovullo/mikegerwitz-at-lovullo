@@ -59,6 +59,12 @@ keybindings conf@(XConfig {XMonad.modMask = modm}) = M.fromList $ [
   -- paste X selection
   ((modm, xK_v), pasteSelection),
 
+  -- copy X selection to clipboard
+  ((modm, xK_c), spawn "xsel | xsel -i -b"),
+
+  -- copy screen exhange into clipboard
+  ((modm, xK_x), spawn "xsel -i -b < ~/.screen-exchange"),
+
   -- screenshot (select window/area; root)
   ((modm, xK_s), spawn "~/bin/screenshot"),
   ((modm, xK_a), spawn "saveas=1 ~/bin/screenshot"),
