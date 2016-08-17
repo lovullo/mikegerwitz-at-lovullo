@@ -114,7 +114,7 @@ while [ 1 ]; do
   count=0
   more=0
   while read joburl; do
-    if [ $count -gt $((lines-9)) ]; then
+    if [ $count -gt $((lines-1)) ]; then
       ((more++))
       continue
     fi
@@ -174,20 +174,9 @@ while [ 1 ]; do
   fi
 
   # spacing to align to bottom (2 for the two headings + lines for output)
-  for i in $( seq 1 $(( lines - count - 7 )) ); do
+  for i in $( seq 1 $(( lines - count - 1 )) ); do
     efull
   done
-
-  # last syncs (no newline with final line)
-  echo -en "\e[37;44m"
-  efull "Last Syncs"
-  echo -e "\e[0;32m"
-  efull2 20 "Release:"       "$( get-last lovullo-release )"
-  efull2 20 "Staging Sync:"  "$( get-last lovullo_staging-deploy )"
-  efull2 20 "Dev Sync:"      "$( get-last lovullo_dev-deploy )"
-  efull2 20 "lovlib Sync:"   "$( get-last lovlib-deploy )"
-  efull2 20 "Rater Release:" "$( get-last rater-release )"
-  echo -en "\e[0m"
 
   output-head
 
