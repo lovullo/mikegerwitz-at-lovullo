@@ -17,6 +17,9 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # #
 
+declare -r user="${JEXECSTATUS_USER?Missing username}"
+declare -r apikey="${JEXECSTATUS_APIKEY?Missing API key}"
+
 trap "refresh-screen" WINCH
 
 refresh-screen()
@@ -89,7 +92,8 @@ efull2()
 
 get-raw()
 {
-  curl -qs 'http://jenkins.lovullo.com/computer/api/json?depth=1'
+  curl -qs 'http://jenkins.lovullo.com/computer/api/json?depth=1' \
+    -u "${user}:${apikey}"
 }
 
 get-exec-data()
@@ -108,7 +112,7 @@ while [ 1 ]; do
   # a long period of time
   tput cup 1 0
 
-  raw="$( get-raw )"
+  raw="$( get-raw )" || { echo "$raw" >&2; exit 1; }
   data="$( get-exec-data <<< "$raw" )"
 
   count=0
