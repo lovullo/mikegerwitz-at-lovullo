@@ -3,7 +3,11 @@
 # treat middle two monitors as a single output (I span my editor
 # across both); this also allows me to use tabs for multiple frames
 # in GUI Emacs
-fake-outputs 1024x1280+0+160,2046x1280+1024+160,2560x1440+3072+0
+fake-outputs 2046x1280+1024+160
+
+# causes problems when using fewer monitors
+bindsym $mod+bracketleft exec "sed -i 's/^fake-outputs /#fake-outputs /' ~/.i3/config"
+bindsym $mod+bracketright exec "sed -i 's/^#fake-outputs /fake-outputs /' ~/.i3/config"
 
 set $mod Mod4
 
