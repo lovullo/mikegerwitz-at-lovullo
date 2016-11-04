@@ -6,8 +6,8 @@
 fake-outputs 2046x1280+1024+160
 
 # causes problems when using fewer monitors
-bindsym $mod+bracketleft exec "sed -i 's/^fake-outputs /#fake-outputs /' ~/.i3/config"
-bindsym $mod+bracketright exec "sed -i 's/^#fake-outputs /fake-outputs /' ~/.i3/config"
+bindsym $mod+Shift+Mod1+bracketleft exec "sed -i 's/^fake-outputs /#fake-outputs /' ~/.i3/config"; restart
+bindsym $mod+Shift+Mod1+bracketright exec "sed -i 's/^#fake-outputs /fake-outputs /' ~/.i3/config"; restart
 
 set $mod Mod4
 
