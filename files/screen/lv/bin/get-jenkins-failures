@@ -1,4 +1,8 @@
 #!/bin/bash
 
+declare -r user="${JENKINS_USER?Missing username}"
+declare -r apikey="${JENKINS_API_KEY?Missing API key}"
+
 url=http://jenkins.lovullo.com
-curl -s --connect-timeout 30 "$url/api/xml"
+curl -s --connect-timeout 30 "$url/api/xml" \
+     -u "${user}:${apikey}"
