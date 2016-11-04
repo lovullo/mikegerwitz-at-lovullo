@@ -20,7 +20,7 @@
 # limited in length and number.  It really is quite wonderful.
 # #
 
-file=.screen/lv/.jenkins-last.xml
+file="$HOME/.screen/lv/.jenkins-last.xml"
 statefile="$( dirname $0 )/.state-jenkins-failures"
 
 # if the file is empty, do nothing
