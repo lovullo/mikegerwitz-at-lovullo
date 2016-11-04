@@ -133,13 +133,5 @@ if [ $nu -gt 0 ]; then
   echo -en "\005{-} "
 fi
 
-# provide a brief, barely audible beep to gently caress my attention toward the
-# failure indicator
-oldcount=$( cat "$statefile" 2>/dev/null || echo 0 )
-if [ $count_failures -gt $oldcount ]; then
-    beep -f 100 -l 1000 -d 500 -r 3 &
-elif [ $count_failures -lt $oldcount ]; then
-    beep -f 2000 -l 100 -d 100 -r 2 &
-fi
-
 echo "$count_failures" > "$statefile"
+
