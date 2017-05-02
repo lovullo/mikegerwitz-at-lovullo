@@ -1,0 +1,59 @@
+@namespace url(http://www.w3.org/1999/xhtml);
+
+@-moz-document domain("news.ycombinator.com") {
+  a[href="user?id=davexunit"],
+  a[href="user?id=sytse"],
+  a[href="user?id=jordigh"] {
+    color: white !important;
+    background-color: #ff6600;
+  }
+
+  /* security (a lot of these from tptacek's profile) */
+  a[href="user?id=moxie"],
+  a[href="user?id=tptacek"],
+  a[href="user?id=dsacco"],
+  a[href="user?id=elptacek"],
+  a[href="user?id=pbsd"],
+  a[href="user?id=geofft"],
+  a[href="user?id=comex"],
+  a[href="user?id=cperciva"] {
+    color: white !important;
+    background-color: #75507b;
+  }
+
+   a[href="user?id=dang"] {
+    color: white !important;
+    background-color: #ff2200;
+  }
+
+  a[href="user?id=loydb"] {
+    color: white !important;
+    background-color: #ff6600;
+  }
+  a[href="user?id=loydb"]::after {
+    content: " (A Hacker's Manifesto)";
+    font-style: italic;
+  }
+
+  a[href="user?id=theunquietone"]::after {
+    content: " (GitLab)";
+    font-style: italic;
+  }
+
+  a[href="user?id=joelanman"]::after {
+    content: " (GDS [gov.uk])";
+    font-style: italic;
+  }
+
+  a[href="user?id=jordigh"]::after {
+    display: inline-block;
+    content: " (GNU Octave)"
+    font-style: italic;
+  }
+
+
+  a[href="user?id=mikegerwitz"] {
+    color: white !important;
+    background-color: #333399;
+  }
+}
