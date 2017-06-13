@@ -1,0 +1,871 @@
+#!/bin/bash
+#
+# Simplify setting up and deleting Flyspray branches
+#
+#  Copyright (C) 2013, 2014 LoVullo Associates, Inc.
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+##
+
+git_dir="$( git rev-parse --git-dir 2>/dev/null )"
+fs_last_id="$git_dir/FS_LAST_ID"
+
+# exit codes (read-only)
+declare -r EX_SUCCESS=0
+declare -r EX_USAGE=64 # see /usr/include/sysexits.h
+declare -r EX_USER=1
+declare -r EX_STATUS=2
+declare -r EX_NOFS=3
+declare -r EX_HEAD=4
+declare -r EX_OPEN=5
+declare -r EX_NOMASTER=6
+declare -r EX_LOGIN=7
+declare -r EX_CTASK=8
+declare -r EX_CLOSE=9
+declare -r EX_COMMENT=10
+declare -r EX_EDIT=11
+declare -r EX_RFAIL=12
+declare -r EX_DIRTY=13
+
+# FS URL
+declare -r FS_URL=http://tasks.lovullo.com
+
+# FS cookie jar for session state
+declare -r FS_CJAR="${FS_CJAR:-$HOME/.fs-cookies}"
+
+# determine editor (notepad is used as a fallback for Windows users who may not
+# have an editor defined)
+editor="${EDITOR:-$( git config --global core.editor )}"
+editor=${editor:-notepad}
+
+
+stdin-or-editor()
+{
+  local action="$1"
+  local file=-
+
+  file="${TMP:-/tmp}/.fs-create-msg"
+
+  if [ "$action" != --get ]; then
+    cat "$file"
+    return
+  fi
+
+  > "$file"
+  if [ -t 0 ]; then
+    # connected to terminal; open editor
+    $editor "$file"
+  else
+    cat > "$file"
+  fi
+}
+
+create-task()
+{
+  local summary="$1"
+
+  # assumping that we're logged in by now
+  local userid="$( fs-user-id )"
+
+  # attempt to create the task
+  local taskid="$(
+    curl -Lvs -c"$FS_CJAR" -b"$FS_CJAR" "$FS_URL/newtask/proj24" \
+      -ditem_summary="$summary" \
+      -daction=newtask.newtask \
+      -dproject_id=24 \
+      -dtask_severity=2 \
+      -dtask_priority=2 \
+      -dtask_type=59 \
+      -dproduct_category=327 \
+      -ditem_status=2 \
+      -d'rassigned_to[]'="$userid" \
+      -doperating_system=53 \
+      -ddetailed_desc="$( stdin-or-editor )" \
+      2>&1 \
+      | tee ~/.fs-create-log \
+      | grep '< Location: ' \
+      | sed 's#^.*/task/\([0-9]\+\).*$#\1#'
+  )"
+
+  # output task id only if numeric (otherwise we'll exit with a non-zero value
+  # indicating a failure and outputting nothing)
+  grep -q '^[0-9]\+$' <<< "$taskid" \
+    && echo "$taskid"
+}
+
+
+add-comment()
+{
+  local taskid="$( get-current-id "$1" )"
+
+  # add the comment; the exit status will be the result of the final grep
+  # (whether it was successful or not based on the presence of a success bar)
+  curl -Lvs -c"$FS_CJAR" -b"$FS_CJAR" "$FS_URL/task/$taskid" \
+    -daction=details.addcomment \
+    -dtask_id="$taskid" \
+    -dcomment_text="$( stdin-or-editor )" \
+    2>&1 \
+    | tee ~/.fs-comment-log \
+    | grep -q '"successbar"'
+}
+
+
+reopen-task()
+{
+  local taskid="$( get-current-id "$1" )"
+
+  # attempt to re-open the task (the exit status will be dependent on the
+  # presence of the success bar)
+  curl -Lvs -c"$FS_CJAR" -b"$FS_CJAR" \
+    "$FS_URL/index.php?do=detail&action=reopen&task_id=13218" \
+    2>&1 \
+    | tee ~/.fs-reopen-log \
+    | grep -q '"successbar"'
+}
+
+
+update-task()
+{
+  local taskid="$( get-current-id "$1" )"
+  local status="$2"
+  local percent="$3"
+  local statusid=0
+
+  case "$status" in
+    unconf*) statusid=1;;
+    new) statusid=2;;
+    as*) statusid=3;;
+    res*) statusid=4;;
+    wait*) statusid=5;;
+    req*|test|rt) statusid=6;;
+    *)
+      echo 'fatal: invalid -U value `'"$status" >&2
+      exit $EX_USAGE
+      ;;
+  esac
+
+  # note that this means if it's *not* divisible by 10
+  if (( percent % 10 )); then
+    echo "fatal: percent (-P) must be divisible by 10" >&2
+    exit $EX_USAGE
+  fi
+
+  # attempt to modify the task
+  curl -Lvs -c"$FS_CJAR" -b"$FS_CJAR" "$FS_URL/task/$taskid" \
+    -daction=details.update \
+    -dedit=1 \
+    -dtask_id="$taskid" \
+    -dedit_start_time="$( date +%s )" \
+    -ditem_status="$statusid" \
+    -dpercent_complete=$percent \
+    -dcomment_text="$( stdin-or-editor )" \
+    2>&1 \
+    | tee ~/.fs-edit-log \
+    | grep -q '"successbar"'
+}
+
+
+close-task()
+{
+  local taskid="$1"
+  local reason="$2"
+  local reasonid=0
+
+  case "$reason" in
+    not*|nobug|nb) reasonid=1;;
+    wontf*|nofix|wf) reasonid=2;;
+    wonti*|wi) reasonid=3;;
+    works*|wfm) reasonid=4;;
+    defer*) reasonid=5;;
+    dup*) reasonid=6;;
+    fixed) reasonid=7;;
+    impl*) reasonid=8;;
+    *)
+      echo 'fatal: invalid -C value `'"$reason'" >&2
+      exit $EX_USAGE
+      ;;
+  esac
+
+  # we will add the reason as the last comment; otherwise, the reason will be
+  # lost if the task is re-opened
+  stdin-or-editor --get
+  add-comment "$taskid" \
+    || {
+      echo "fatal: failed to add closing comment (see ~/.fs-comment-log)" >&2
+      return 1
+    }
+
+  # attempt to close the task (the exit status will be dependent on the
+  # presence of the success bar)
+  curl -Lvs -c"$FS_CJAR" -b"$FS_CJAR" "$FS_URL/task/$taskid" \
+    -daction=details.close \
+    -dtask_id="$taskid" \
+    -dresolution_reason="$reasonid" \
+    -dclosure_comment="See last comment." \
+    2>&1 \
+    | tee ~/.fs-close-log \
+    | grep -q '"successbar"'
+}
+
+
+get-current-id()
+{
+  local id="$1"
+  [ -z "$id" ] && id="$( get-current-state | get-task-from-branch )"
+  [ -z "$id" ] && id="$( get-current-branch | get-task-from-branch )"
+
+  echo "$id"
+}
+
+
+# opens fs task in configured web browser
+open-task()
+{
+  # id will default to current branch if it is not provided, or to the current
+  # state (if available)
+  local id="$( get-current-id "$1" )"
+
+  # if we weren't given an id and could not find one, bail out
+  if [ -z "$id" ]; then
+    echo 'fatal: HEAD is not a FS branch. Specify id or change branch.' >&2
+    exit $EX_OPEN
+  fi
+
+  git web--browse "$FS_URL/task/$id"
+}
+
+# retrieve the HTML associated with the given id on flyspray
+get-task-html()
+{
+  local id="$1"
+  curl -s -c"$FS_CJAR" -b"$FS_CJAR" $FS_URL/task/$id | tr -d '\n'
+}
+
+# retrieve the status from the provided XML (provided via stdin)
+get-task-status()
+{
+  sed 's-.*<td headers="status">\s*\([^<]\+\).*-\1-;s/\s*$//'
+}
+
+get-task-title()
+{
+  sed 's-.*<h2 class="summary[^"]*">\s*\([^<]\+\).*-\1-;s/\s*$//'
+}
+
+get-current-state()
+{
+  which git-state >/dev/null && git state
+}
+
+get-current-branch()
+{
+  git symbolic-ref HEAD 2>/dev/null
+}
+
+# create a new "FS branch" from the given branch name
+create-fs-branch()
+{
+  local branch="$1"
+  local html="$( cat )"
+
+  # disallow branching off of dev
+  cur_branch=$( get-current-branch )
+  [ "$cur_branch" == 'refs/heads/dev' ] && {
+    echo "fatal: cannot create FS branch off of dev" >&2
+    exit $EX_HEAD
+  }
+
+  # create the branch, push to origin and track upstream so that pushes and
+  # pulls will work as expected
+  git checkout -b "$branch" \
+    && git push --set-upstream origin "$branch:$branch" \
+    && echo "$( get-task-title <<< "$html" )"
+}
+
+# append the status to each branch name
+statusify()
+{
+  local bname
+
+  # if we do not want to display the status, don't bother doing anything; just
+  # output the data as-is
+  if [ $showstatus -eq 0 ]; then
+    cat
+    return
+  fi
+
+  while read bname; do
+    fsid=$( get-task-from-branch "$bname" )
+
+    # if no flyspray id was found, just continue
+    if [ -n "$fsid" ]; then
+      # get task html and a couple stats
+      html=$( get-task-html "$fsid" )
+      status=$( get-task-status <<< "$html" )
+      title=$( get-task-title <<< "$html" )
+
+      # if status was found, output it along with the branch name
+      # the second column is sized for "Requires Testing"
+      if [ -n "$status" ]; then
+        printf "%s\t%-16s\t%s\n" "$bname" "$status" "$title"
+        continue
+      fi
+    fi
+
+    # if no status was found, just output the branch name
+    echo "$bname"
+  done
+}
+
+clean-tasks()
+{
+  local bname
+
+  # if there are changes, demand stashing first
+  git status --short | grep -q "^ \?M" && {
+    echo "You have uncommitted changes; please stash or commit first." >&2
+    exit "$EX_DIRTY"
+  }
+
+  while read bname; do
+    fsid=$( get-task-from-branch "$bname" )
+
+    # if no flyspray id was found, just continue
+    [ -n "$fsid" ] || continue
+
+    # get status from the html
+    status="$(
+      get-task-html "$fsid" \
+        | get-task-status \
+        | tr '[:upper:]' '[:lower:]' \
+    )"
+
+    # to perform the clean, we'll simply recurse
+    case "$status" in
+      closed)
+        # default to -d, but permit -D if set
+        "$0" -"${delete:-d}" -t"$root" "$fsid"
+        ;;
+    esac
+  done
+}
+
+get-task-from-branch()
+{
+  # accept via argument or stdin
+  local bname="$1"
+  [ -z "$bname" ] && bname="$( cat )"
+
+  # yes, this is awkward, but the grep we have installed in msys doesn't support
+  # -o!!!
+  grep -i 'fs#\?[0-9]\+' <<< "$bname" \
+    | sed 's/.*[Ff][Ss]#\?\([0-9]\+\).*/\1/'
+}
+
+# determines whether or not branch B has been merged into branch A
+inbranch()
+{
+  local return=1
+  git branch --merged "$1" | grep -qF "$2" && return=0
+
+  # remember, 0 = success
+  return $return
+}
+
+# store last accessed fs id, overwriting any previous
+store-id()
+{
+  echo "$id" > "$fs_last_id"
+}
+
+# retrieve last accessed fs id
+retrieve-id()
+{
+  cat "$fs_last_id"
+}
+
+is-logged-in()
+{
+  grep -q flyspray_userid "$FS_CJAR"
+}
+
+fs-user-id()
+{
+  awk '$6 ~ /flyspray_userid/ { print $7 }' < "$FS_CJAR"
+}
+
+login-if-needed()
+{
+   is-logged-in || try-login
+}
+
+try-login()
+{
+  user="${USER:-$USERNAME}"
+
+  # read password from stderr so as not to impose on any input from stdin
+  read -su2 -p "FS password for $user: " pass
+  echo
+
+  curl -L -v -c"$FS_CJAR" "$FS_URL/index.php?do=authenticate" \
+    -duser_name="$user" \
+    -dpassword="$pass" \
+    -dremember_login=on \
+    &>.fs-login
+
+  # determine if the login was successful
+  is-logged-in || {
+    echo "fatal: login failed; check ./.fs-login" >&2
+    exit $EX_LOGIN
+  }
+
+  rm .fs-login
+}
+
+
+# grab first name from git config file and convert to lowercase
+user=$( git config user.name \
+  | cut -d' ' -f1 \
+  | tr '[:upper:]' '[:lower:]' \
+)
+
+# if the name is not set, we cannot continue
+if [ -z "$user" ]; then
+  echo "user.name not set; use git config user.name." >&2
+  exit $EX_USER
+fi
+
+# default options
+id=
+delete=
+close=
+addcomment=0
+reopen=0
+sskip=0
+showstatus=0
+showall=
+open=0
+merge=0
+nameonly=0
+login=0
+tedit=0
+percent=
+root=master
+status=
+
+usage()
+{
+  cat <<EOU
+Usage: git-fs -[dCDLmnoPRSUX] [-t branch] [id]
+   or: git-fs -[sa]
+   or: git-fs -c title
+   or: git-fs --clean -[D] [-t branch]
+   or: git-fs --help
+   or: git-fs
+Create and manipulate FS task branches
+
+If no options are provided, the default action will be to list all local FS
+branches (see also -s to include their statuses and -a to show all remotes).
+
+If you are not already authenticated, then you will be prompted for your
+flyspray password. Re-authentication may be forced with -L if necessary.
+
+Options:
+  -a  show all FS tasks, even if they are not your own (may also use with -s)
+  -A  add a comment; comment is taken from stdin unless connected to a terminal,
+        in which case an editor will be opened
+  -c  create a new task with the given title; task detail body is taken from
+        stdin unless connected to a terminal, in which case an editor will be
+        opened
+  -C  close a task with the given reason (implies -d and S); additional comments
+      taken from stdin unless connected to a terminal, in which case an editor
+      will be opened; see "Close Reasons" below
+  -d  delete a task branch (task must be closed; see -D)
+  -D  force delete; do note perform merge check (same as git branch -D; see -d)
+  -L  force login, even if already authenticated
+  -m  merge task branch into current branch (if no id is provided, uses the
+        most recently accessed id)
+  -n  output FS task title (if no id is provided, uses the most recently
+        accessed id) and then exits
+  -o  open the given task in your browser (if no id is provided, uses the most
+        recently accessed id) and then exits
+  -P  update percent complete; must be a multiple of 10 between 0--100 inclusive
+  -R  re-open a closed task before creating or switching to its branch
+  -s  display task status for each local branch (may use with -a to also show
+        remotes)
+  -S  skip task status check (use with -[dD])
+  -t  use alternate root/topic branch to perform merge check against (default:
+      master)
+  -U  update task status; an additional message to display with the update is
+        accepted via stdin (an editor will open if connected to a terminal); a
+        status of "testing" implies -P100
+  -X  see git merge -X; use with -m
+
+Long Options:
+  --clean        delete branches of closed tasks
+
+  --comment
+  --add-comment  alias for -A
+
+  --help         show this help
+
+
+Status Flags (-U):
+  This script currently supports only the standard status flags that should
+  exist for every project:
+
+  unconfirmed
+  unconf       Unconfirmed
+  new          New
+  assigned     Assigned
+  researching
+  research     Researching
+  waiting      Waiting on Customer
+  requirestesting
+  test
+  rt           Requires Testing
+
+
+Close Reasons (-C):
+  notabug
+  nobug
+  nb        Not a bug
+  wontfix
+  nofix
+  wf        Won't fix
+  wontimplement
+  wontimpl
+  wi        Won't implement
+  worksforme
+  works
+  wfm       Works for me (are you sure!?)
+  deferred
+  defer     Deferred
+  duplicate
+  dup       Duplicate (please provide FS# of duplicate in desc)
+  fixed     Fixed
+  implemented
+  impl      Implemented
+
+
+Report git-fs bugs to bug-someoneelse@lovullo.com
+General help using LoVullo software: <#developerchat>
+EOU
+
+  exit
+}
+
+# grab any options
+while getopts "AaC:c:dDLmnoP:RSst:U:X:-:" option; do
+  case "$option" in
+    A) addcomment=1;;
+    a) showall=-a;;
+    C) close="$OPTARG"; delete=-d; sskip=1;;
+    d) delete=-d;;
+    D) delete=-D;;
+    m) merge=1;;
+    n) nameonly=1;;
+    o) open=1;;
+    R) reopen=1;;
+    S) sskip=1;;
+    s) showstatus=1;;
+    t) root="$OPTARG";;
+    X) merge_opt="-X$OPTARG";;
+
+    L) try-login;;
+
+    # edit options
+    P) tedit=1; percent="$OPTARG";;
+    U) tedit=1; status="$OPTARG";;
+
+    c)
+      login-if-needed
+      stdin-or-editor --get
+      taskid="$( create-task "$OPTARG" )"
+
+      [ -n "$taskid" ] || {
+        echo "fatal: could not create task (see ~/.fs-create-log)" >&2
+        # a couple suggestions based on common problems
+        echo "Did you try to create the same task twice?" >&2
+        echo "If not, try resetting your session with -L" >&2
+        exit $EX_CTASK
+      }
+
+      # output a URL to the task
+      echo "$FS_URL/task/$taskid"
+
+      # if -o was provided, then open immediately
+      [ $open -eq 1 ] && open-task "$taskid"
+
+      # finally, we'll create a branch from this task
+      open=0
+      id="$taskid"
+      ;;
+
+    # pretend that we support long options (well, I guess we technically do now)
+    -)
+      case "$OPTARG" in
+        add-comment|comment)
+          addcomment=1
+          ;;
+
+        clean) clean=1;;
+
+        help)
+          usage
+          ;;
+
+        *)
+          echo "invalid option: --$OPTARG" >&2
+          exit 64
+          ;;
+      esac
+      ;;
+
+    ?) exit 64;;
+  esac
+done
+
+# consume option arguments
+shift $(( OPTIND - 1 ))
+
+# if login was requested or user is not already logged in, go for it (USERNAME
+# for msys users)
+login-if-needed
+
+# the id should have been provided as the first argument
+id="${id:-$1}"
+
+# attempt clean if requested
+if [ -n "$clean" ]; then
+  git branch | grep "$user/[Ff][Ss]" | clean-tasks
+  exit "$?"
+fi
+
+
+# "-" represents the previously visited id, if any
+[ "$id" == '-' ] && id="$( retrieve-id )"
+
+# output name if requested
+if [ $nameonly -eq 1 ]; then
+  [ -z "$id" ] && id="$( retrieve-id )"
+  [ "$id" ] || exit $EX_USAGE
+
+  echo "$( get-task-html "$id" | get-task-title )"
+  exit $EX_SUCCESS
+fi
+
+# if requested, open the task in the user's web browser
+if [ $open -eq 1 ]; then
+  open-task "$id"
+  exit $EX_SUCCESS
+fi
+
+# if no id was provided and we are merging, attempt to retrieve the id of the
+# last accessed FS task
+if [ -z "$id" -a $merge -eq 1 ]; then
+  if [ "$delete" ]; then
+    echo "warning: -d flag provided; not using recently accessed id" >&2
+  else
+    id="$( retrieve-id )"
+    [ "$id" ] && echo "Using most recently accessed id: fs$id" >&2
+  fi
+fi
+
+# edit?
+if [ "$tedit" -eq 1 ]; then
+  update-task "$id" "$status" "$percent" || {
+    echo "fatal: failed to edit task (see ~/.fs-edit-log)" >&2
+    exit $EX_EDIT
+  }
+  echo "Task edited."
+  exit $EX_SUCCESS
+fi
+
+# add a comment?
+if [ "$addcomment" -eq 1 ]; then
+  stdin-or-editor --get
+  add-comment "$id" || {
+    echo "fatal: failed to add comment" >&2
+    exit $EX_COMMENT
+  }
+  echo "Comment added."
+  exit $EX_SUCCESS
+fi
+
+# if we were not provided with any arguments, simply list the FS branches and
+# exit
+if [ -z "$id" ]; then
+  searchname="$user/"
+  [ -n "$showall" ] && searchname=
+  git branch $showall | grep "${searchname}[Ff][Ss]" | statusify
+  exit 0
+fi
+
+# only allow numeric ids (will also catch them if they accidently enter FS#)
+grep -q '^[0-9]\+$' <<< "$id" || {
+  echo "Invalid FS#; must be numeric." >&2
+  exit $EX_USAGE
+}
+
+# the branch name will be the username, followed by the task name (e.g.
+# mike/fs1234)
+branch="$user/fs$id"
+
+# do we have curl?
+havecurl=0
+which curl >/dev/null && havecurl=1
+
+# should we merge the given id into this branch? (do not exit after the merge,
+# so we can allow them to do something like -md to have the branch removed
+# immediately thereafter)
+if [ $merge -eq 1 ]; then
+  title="$( get-task-html "$id" | get-task-title )"
+
+  # if no merge options were provided and if we are branching off of master,
+  # then first attempt to rebase atop of master to keep things clean
+  if [ -z "$merge_opt" ]; then
+    if [ "$( get-current-branch )" == 'refs/heads/master' ]; then
+      # do not rebase if the branch has already been merged into master;
+      # otherwise, we'll be rewriting this branch history, but the merge will
+      # not happen (because the diff will be empty), resulting in new commits in
+      # the branch that are not in master
+      if git branch --contains "$branch" | grep -q '^* master'; then
+        echo "Already up-to-date."
+        exit
+      fi
+
+      echo "attempting rebase atop of master..." >&2
+      # if the rebase fails, we'll simply abort it, which allows us to fall back
+      # to a normal merge and resolve the merge conflict there
+      git checkout "$branch" \
+        && ( git rebase master && git push --force || git rebase --abort ) \
+        && git checkout master \
+        || {
+          echo 'fatal: inconsistent state; clean up before proceeding'
+          exit $EX_RFAIL
+        }
+    fi
+  fi
+
+  # use title for merge commit, if available
+  git merge --no-ff --no-commit $merge_opt "$branch" \
+    && git commit -m "$title" \
+    || exit $?
+fi
+
+# delete the branch (rather than creating it) if we were told to do so
+if [ -n "$delete" ]; then
+  # If status skip is not requested, perform additional checks before deleting
+  # the branch (to ensure they don't do something they do not intend to)
+  [ $sskip -eq 1 -a $havecurl -eq 1 ] || {
+    # grab the status
+    status=$( get-task-html "$id" | get-task-status )
+
+    # if not closed, since we are not forcing the delete, disallow
+    if [ "$status" != 'Closed' ]; then
+      echo "fatal: FS#$id is not closed (status is '$status'); " >&2
+      echo "use -S to skip status check." >&2
+      exit $EX_STATUS
+    fi
+  }
+
+  # do not allow them to delete if not merged into master (or root branch),
+  # unless -D was given
+  [ $delete == '-D' ] || inbranch "$root" "$branch" || {
+    echo "fatal: $branch has not been merged with "$root"; override with -D" >&2
+    exit $EX_NOMASTER
+  }
+
+  # if a close was requested, then give it a try
+  [ -z "$close" ] || close-task "$id" "$close" || {
+    echo "fatal: could not close task" >&2
+    exit $EX_CLOSE
+  }
+
+  # this does not check to ensure they're not on the branch; they can interpret
+  # the errors themselves
+  git branch $delete "$branch" \
+    && git push origin ":$branch" \
+    && git remote prune origin
+
+  # we're done; don't continue on to create the branch!
+  exit $EX_SUCCESS
+fi
+
+# at this point, if we were merging, we do not want to create/switch to the
+# branch
+[ $merge -eq 1 ] && exit
+
+# if the branch already exists, simply switch to it
+git branch | grep -q "$branch\$" && {
+  git checkout "$branch"
+  store-id "$id"
+  exit
+}
+
+# before we create the branch, make sure such a task exists (to prevent typos)
+[ $havecurl -eq 1 ] && {
+  html=$( get-task-html "$id" )
+
+  # check if it exists
+  grep -q '^Redirect' <<< "$html" && {
+    if [ $sskip -ne 1 ]; then
+      echo "fatal: FS#$id does not exist." >&2
+      exit $EX_NOFS
+    fi
+  }
+
+  # ensure that it is not closed
+  status=$( get-task-status <<< "$html" )
+  if [ "$status" == 'Closed' ]; then
+    # if a reopen was requested, then re-open it instead of aborting
+    if [ "$reopen" -eq 1 ]; then
+      reopen-task "$id" || {
+        echo "fatal: FS#$id could not be re-opened." >&2
+        exit $EX_STATUS
+      }
+    else
+      echo "fatal: FS#$id is closed." >&2
+      exit $EX_STATUS
+    fi
+  fi
+}
+
+# if not branching off of master, verify this action (to prevent oopsies); we
+# perform this check here rather than in create-fs-branch because
+# create-fs-branch's input is redirected and therefore does not have access to
+# stdin for the `read' call
+[ "$( get-current-branch )" != 'refs/heads/master' ] && {
+  echo "warning: you are not branching off of master"
+  read -n1 -p'Are you sure you want to do this (y/n)? ' answer
+  echo
+
+  # if they did not answer yes, abort
+  [ "$answer" != 'y' ] && {
+    echo "aborting."
+    exit
+  }
+}
+
+# create the branch, exiting on failure
+create-fs-branch "$branch" <<< "$html" || exit $?
+store-id "$id"
+
+# for those with git-state installed (see git-supp on Gitorious/GitHub), set the
+# state to the flyspray task so that it is automatically included in the commit
+# message
+which git-state >/dev/null && \
+  git state "FS#$id"
+
