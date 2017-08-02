@@ -39,6 +39,7 @@
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
+(savehist-mode)
 
 (setq cursor-in-selected-window nil)
 (setq-default indicate-buffer-boundaries '((top . left) (bottom . left)))
@@ -181,9 +182,17 @@
 
 (eval-after-load "outline" '(require 'foldout))
 
+(defun my-evil-mode ()
+  "Enable evil-mode in the current buffer and bind C-["
+  (interactive)
+  (turn-on-evil-mode)
+  (evil-esc-mode 1))
+
 (defconst my-mode-hooks
   `((turn-on-auto-fill . (text-mode-hook
                           prog-mode-hook))
+    (my-evil-mode . (text-mode-hook
+                        prog-mode-hook))
 
     ;; perf issues
     ;; (fci-mode         . (prog-mode-hook))
@@ -295,7 +304,7 @@ reverse by inspecting the runtime value of those hooks.")
 (require 'evil-surround)
 (require 'org-collector)
 
-(evil-mode 1)
+;(evil-mode 1)
 (global-evil-search-highlight-persist t)
 (global-evil-matchit-mode t)
 (global-evil-surround-mode t)
@@ -358,13 +367,17 @@ reverse by inspecting the runtime value of those hooks.")
   ;; note that you can still return to Emacs mode in insert mode
   "\C-z" 'suspend-emacs)
 
+(defun my-linum-mode (arg)
+  (interactive)
+  (relative-line-numbers-mode arg))
+
 (defun my-get-serious (&optional flag)
   (interactive)
   ;; just use nlinum mode as an indicator of whether we're
   ;; serious or not
   (let ((arg (or flag
                  (if (my-serious-p) -1 t))))
-    (nlinum-mode arg)
+    (my-linum-mode arg)
     (color-identifiers-mode arg)
 
     ;; should already be enabled for prog modes, but
@@ -386,7 +399,7 @@ reverse by inspecting the runtime value of those hooks.")
 
 
 (defun my-serious-p ()
-  (and (eq nlinum-mode t)
+  (and (eq (or linum-mode relative-line-numbers-mode) t)
        (eq color-identifiers-mode t)))
 
 
@@ -394,7 +407,7 @@ reverse by inspecting the runtime value of those hooks.")
   (interactive)
   (if (my-serious-p)
       (my-get-serious -1))
-  (nlinum-mode (if nlinum-mode -1 t)))
+  (my-linum-mode (if (or linum-mode relative-line-numbers-mode) -1 t)))
 
 ;; i = "into", like "get into it"
 (global-set-key (kbd "C-c i") 'my-get-serious)
@@ -409,9 +422,9 @@ reverse by inspecting the runtime value of those hooks.")
 
 (add-hook 'php-mode-hook
           (lambda ()
-            (define-key js-mode-map (kbd "C-x t t")
+            (define-key php-mode-map (kbd "C-x t t")
               (my-switch-test-buffer-then-call 'phpunit-current-class))
-            (define-key js-mode-map (kbd "C-x t p")
+            (define-key php-mode-map (kbd "C-x t p")
               (my-switch-test-buffer-then-call 'phpunit-current-project))))
 
 (add-hook 'js-mode-hook
@@ -439,6 +452,12 @@ reverse by inspecting the runtime value of those hooks.")
   (interactive)
   (select-window (display-buffer (my-test-buffer-name))))
 
+(defun my-switch-compilation ()
+  (interactive)
+  (select-window (display-buffer "*compilation*")))
+
+(global-set-key (kbd "C-x c") 'my-switch-compilation)
+
 
 ;; TODO: upstream
 (defun evil-mc-undo-cursor-here ()
@@ -454,15 +473,36 @@ reverse by inspecting the runtime value of those hooks.")
 ;; TODO: Move to general config
 (evil-define-key 'visual global-map
   [(control ?\=)] 'my-align-eq)
+(evil-define-key 'visual global-map
+  [(control ?\:)] 'my-align-colon)
+(evil-define-key 'visual global-map
+  [(control ?\@)] 'my-align-docparams)
 
 (defun my-align-eq ()
   (interactive)
   (let ((align-on "=>?"))
-    (save-excursion
-      (move-beginning-of-line nil))
     (align-regexp (region-beginning)
                   (region-end)
                   (concat "\\(\\s-*\\)" align-on))))
+
+(defun my-align-colon ()
+  (interactive)
+  (align-regexp (region-beginning)
+                (region-end)
+                ":\\(\\s-*\\)"))
+
+(defun my-align-docparams ()
+  "Naive docblock param alignment that could be done much better and will
+work with both JS and PHP"
+  (interactive)
+  ;; between type and argument name
+  (align-regexp (region-beginning)
+                (region-end)
+                "@param +[^ ]+\\(\\s-*\\)")
+  ;; description
+  (align-regexp (region-beginning)
+                (region-end)
+                "@param +[^ ]+ +[^ ]+\\(\\s-*\\)"))
 
 ;; TODO: Move to general config
 (setq help-window-select t)
@@ -529,14 +569,15 @@ reverse by inspecting the runtime value of those hooks.")
  '(comment-auto-fill-only-comments t)
  '(custom-safe-themes
    (quote
-    ("8db4b03b9ae654d4a57804286eb3e332725c84d7cdab38463cb6b97d5762ad26" "b5fd06da95ae695d2b075f76c62c802b019a62e41e917f999c324417fda06b49" "3e5eba2c31bcc306fa2ad1a0ab27a42eb9f0565a487d89745da7644e2c41ef48" "a300fb5fae1398bc8dcdc133ad4cb40a85e28414dbac459d6b3ebfe5b28b9450" "58282dafa3ebe1666c3218d788e6ea38263dc3a4a9ebb1adab42feba944094f9" "177f551d5cd3039a7be96aaf40e9b3bae5d9d8d09b19a6fba0da4a0dd30f6630" "f764d020a57f72ead1aea66a7f6fd60bc0694ffbe484b004e6031737ab29755c" "e1a5fd2bd7e75accab12975f8f2bf279eb6d3751b4c44179b19b7dd22ffef2ac" "224f8b9ce25e0a828c77c000c35ba2c53a23d4e66101014dc3eb1a8f8d4f88f7" "49bbce1be3fd69cf5064606c925e20032c3ba8f219a3caafd8de0f555d0c92b9" "0d5bc72d4b603c123fc2a3244f1241bceb80e2aeb9cab3d66686ae9b941bfc66" "6f2dce845220dc2246afbb126b3ed9452d4abd8f824c7a1916bd8855031e32aa" "dd16769bccf70f0fa60d63f3b43234296ef76ba4fcc66ea50f99f814b9a2d1db" "4f6fa7077a35f59173fafd0d0cf3f261b02297dba38980a5f247e92cc0168329" "cdd667935dbf5a0499fe5ec40dfb52f489b0dc35c543df6394b3ae5d6989bb07" "26afa77b4b06497e677c7cfeed1013497202171a4419cc897d57631d5cd37c88" "31b872a851e8d209e9841900d03e82e0b5a4edd5b5264c1b5760b27f99b38494" "cdf2bcf6a8dc55f6ea1952ea801b354694d4637141a1d583517b64b6f251c14d" "965fc2b6331dfa8e7ef23dac6bda28e99bce4c2281017afb4a69b1271c75f26b" "43ce8339120968d44f0469fa4c27a50e8ad5d23d77fc0a1e0db73efb6b993867" "e59ae2921898d80da3b96946e5209f7444f41ade8447d6dfc1af60742c83da17" "9371453e41aac21d5b497495f62addde1403f66d9ed5d3d1c99c6bca97f90d2b" "fb544d15e7b86166dac42852dbdca1c925a3c264727a2ad5405e83e9518779d5" "b42f254097e35ef7ffc358f1761752a4e57b87666ea68acd4f14c6e6fcc00600" "0ef12f3616401e66056902a57801cf1f8d1424862c14a8d81948f7ebeccf2e29" "6dd8165dbfcaa4e2bff47a49047ddc9aefef72f13a581e35e841e208085cb234" "15510277fdb3328ff2f09fbbbf1d076f4b6fc9780307e3aa8cad15f9be130418" "33703cf1e77822f53234f978715a708a34443bb2a4aa743b46fa4ff0ad5b87a3" "39575c14b899508d4396237f9fd395187dba7f6fe3f55e208d9b7e6757a8f787" "3bd2ac0df813db3e0c621ba2b60ef4c35ff0a170d29dde7775b4c63d77b86d85" "38d233bd1fc80b1a5742d250be01f13a5ca30d4d1c97dd35d2649b26946f1569" "bdc08f2bf6f81d35b50774fb0af6ebdaa53a52997877e5a8645cff73c1ad0ec4" "5921766f185dc88e7be19f975fe8bcf74acfe0f9a30b65d48b0dccb64513002e" "8756857b912e7d45e66faa98f09492f49e3b85b9cfad9d66e8e56fa3845c771b" "d673ab6d6dd920b494779a4f40e98944dc811e8109fd12a2573bc1da004414a3" "6f2c9853eb36fd91e7d7614ac64db74dac2e7a68ca7228210a8a41ecfbae418d" "1952011134c26364c2596299c0d6014cf32e24065d0c16ef7f8f262d3bd0d7e7" "4c00f87e7cbae6adfe6760567d2ed3688650a6990bab665cc944f0ba063e3308" "aa1ed7440b86675ad08dff79f95300b176172d4426c7f066ca221966b718be3c" "1ddf74c4e2c409d7f5a43be420f74b59937a79ff99b87990aaa983784c71206f" "a98480fb482f331058b949c8daebc8bba87498820605b959472a84e643406a4f" "5a4b738abb68ee9e764a88b39dbed8c4603b5e814d53d950a22c9942099a12d7" default)))
+    ("a300fb5fae1398bc8dcdc133ad4cb40a85e28414dbac459d6b3ebfe5b28b9450" default)))
  '(desktop-auto-save-timeout 10)
- '(desktop-restore-forces-onscreen (quote all))
+ '(desktop-restore-forces-onscreen (quote all) t)
  '(desktop-restore-in-current-display t)
  '(desktop-restore-reuses-frames :keep)
  '(ediff-split-window-function (quote split-window-horizontally) t)
  '(electric-pair-mode t)
  '(geiser-guile-binary "/opt/guile-2.2.0/bin/guile")
+ '(global-evil-mc-mode t)
  '(jiralib-host "")
  '(jiralib-url "https://lovullo.atlassian.net")
  '(js-indent-first-init nil)
@@ -565,22 +606,27 @@ reverse by inspecting the runtime value of those hooks.")
  '(org-src-fontify-natively t)
  '(package-selected-packages
    (quote
-    (mocha unicode-fonts bookmark+ color-identifiers-mode js2-mode php-scratch php-refactor-mode evil-mc-extras evil-mc ggtags phpunit gitlab diff-hl yasnippet evil-magit php-mode zeal-at-point yaml-mode web-mode w3m twig-mode sentence-highlight rainbow-delimiters puppet-mode projectile php-extras org-jira nlinum mc-extras markdown-mode magit less-css-mode jira htmlize hackernews goto-last-change geiser geben flymake-puppet flymake-phpcs flymake-php flycheck fiplr fill-column-indicator expand-region evil-surround evil-search-highlight-persist evil-matchit evil-easymotion evil ess csharp-mode crosshairs color-theme-zenburn color-theme-wombat color-theme-vim-insert-mode color-theme-twilight color-theme-tangotango color-theme-tango color-theme-solarized color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized color-theme-railscasts color-theme-monokai color-theme-molokai color-theme-library color-theme-ir-black color-theme-heroku color-theme-gruber-darker color-theme-github color-theme-emacs-revert-theme color-theme-eclipse color-theme-dpaste color-theme-dg color-theme-complexity color-theme-cobalt color-theme-buffer-local color-theme-actress aggressive-indent adaptive-wrap ac-php)))
+    (company-php company relative-line-numbers realgud mocha unicode-fonts bookmark+ color-identifiers-mode js2-mode php-scratch php-refactor-mode evil-mc-extras evil-mc ggtags phpunit gitlab diff-hl yasnippet evil-magit php-mode zeal-at-point yaml-mode web-mode w3m twig-mode sentence-highlight rainbow-delimiters puppet-mode projectile php-extras org-jira nlinum mc-extras markdown-mode magit less-css-mode jira htmlize hackernews goto-last-change geiser geben flymake-puppet flymake-phpcs flymake-php flycheck fiplr fill-column-indicator expand-region evil-surround evil-search-highlight-persist evil-matchit evil-easymotion evil ess csharp-mode crosshairs color-theme-zenburn color-theme-wombat color-theme-vim-insert-mode color-theme-twilight color-theme-tangotango color-theme-tango color-theme-solarized color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized color-theme-railscasts color-theme-monokai color-theme-molokai color-theme-library color-theme-ir-black color-theme-heroku color-theme-gruber-darker color-theme-github color-theme-emacs-revert-theme color-theme-eclipse color-theme-dpaste color-theme-dg color-theme-complexity color-theme-cobalt color-theme-buffer-local color-theme-actress aggressive-indent adaptive-wrap ac-php)))
  '(persp-mode t)
  '(projectile-globally-ignored-file-suffixes (quote ("xmlo" "csvo" "xmle")))
+ '(savehist-mode t)
  '(send-mail-function (quote sendmail-send-it))
+ '(undo-outer-limit 12000000)
  '(undo-tree-auto-save-history t)
  '(undo-tree-history-directory-alist (quote (("." . "~/.emacs.d/undo/"))))
- '(yas-global-mode t))
+ '(yas-global-mode t)
+ '(yas-snippet-dirs (quote ("/home/LOVULLO/gerwitm/.emacs.d/snippets"))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(default ((t (:inherit nil :stipple nil :background "#090909" :foreground "#b2b2b2" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 75 :width normal :foundry "unknown" :family "DejaVu Sans Mono"))))
  '(avy-lead-face ((t (:background "red" :foreground "white"))))
  '(avy-lead-face-0 ((t (:background "blue" :foreground "white"))))
  '(avy-lead-face-1 ((t (:background "cyan" :foreground "white"))))
  '(avy-lead-face-2 ((t (:background "magenta" :foreground "white"))))
+ '(company-preview ((t (:background "dark slate gray" :foreground "wheat"))))
  '(js2-object-property ((t (:inherit font-lock-variable-name-face))))
  '(magit-blame-heading ((t (:background "grey25" :foreground "white"))))
  '(org-block ((t (:inherit org-block-background))))
